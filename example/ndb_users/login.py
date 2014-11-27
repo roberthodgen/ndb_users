@@ -90,8 +90,6 @@ by clicking the link below:
 {activation_link}
 """.format(activation_link=activation_url)
     mail.send_mail(sender_email_address, user.email, subject, body)
-  else:
-    return None
 
 
 class LoginPage(webapp2.RequestHandler):
@@ -127,11 +125,9 @@ class LoginPage(webapp2.RequestHandler):
 
   def post(self):
     """ Log in a user via POST'ed `email` and `password` values. """
-
     # Make sure required POST parameters are present
     email = self.request.POST.get('email')
     password = self.request.POST.get('password')
-
     if email and password:
       # Get a User for `email` and `password`
       user = ndb.Key(users.User, users._user_id_for_email(email.lower())).get()
@@ -157,7 +153,6 @@ class LoginPage(webapp2.RequestHandler):
                 users.template_values()
               ))
             return None
-
     # Error
     self.response.out.write(template.render(
         'ndb_users/templates/login-error.html',
@@ -176,10 +171,8 @@ class JsonLogin(webapp2.RequestHandler):
 class LoginCreate(webapp2.RequestHandler):
   def get(self):
     """ Display the Signup/Create Account template. """
-
     # Ensure user not logged in
     user = users.get_current_user()
-
     self.response.out.write(template.render(
         'ndb_users/templates/create.html',
         users.template_values()
@@ -191,7 +184,6 @@ class LoginCreate(webapp2.RequestHandler):
     email = self.request.POST.get('email')
     password = self.request.POST.get('password')
     password2 = self.request.POST.get('password2')
-
     # Make sure required POST parameters are present
     if not email or not password or not password2:
       self.response.out.write(template.render(
@@ -203,7 +195,6 @@ class LoginCreate(webapp2.RequestHandler):
           }
         }))
       return None
-
     # Check password equality
     if password != password2:
       self.response.out.write(template.render(
@@ -215,7 +206,6 @@ class LoginCreate(webapp2.RequestHandler):
           }, 'passwordMismatch': True
         }))
       return None
-
     # Check password length
     if len(password) < 4:
       self.response.out.write(template.render(
@@ -227,7 +217,6 @@ class LoginCreate(webapp2.RequestHandler):
           }, 'passwordTooShort': True
         }))
       return None
-
     # Check `email` against regular expression
     if not mail.is_email_valid(email):
       self.response.out.write(template.render(
@@ -239,7 +228,6 @@ class LoginCreate(webapp2.RequestHandler):
           }, 'emailInvalid': True
         }))
       return None
-
     # Try finding a User with this email...
     user_found = users.User.query(users.User.email==email).count(1)
     if user_found < 1:
@@ -288,7 +276,6 @@ class LoginPasswordChange(webapp2.RequestHandler):
             users.template_values()
           ))
       return None
-
     # No logged in user
     self.redirect(webapp2.uri_for('login'))
 
@@ -299,7 +286,6 @@ class LoginPasswordChange(webapp2.RequestHandler):
       current_password = self.request.POST.get('password')
       new_password = self.request.POST.get('newPassword')
       new_password2 = self.request.POST.get('newPassword2')
-
       # Make sure required POST parameters are present
       if not current_password or not new_password or not new_password2:
         self.response.out.write(template.render(
@@ -307,7 +293,6 @@ class LoginPasswordChange(webapp2.RequestHandler):
             users.template_values()
           ))
         return None
-
       # Check password equality
       if new_password != new_password2:
         self.response.out.write(template.render(
@@ -316,7 +301,6 @@ class LoginPasswordChange(webapp2.RequestHandler):
             }
           ))
         return None
-
       # Check password length
       if len(new_password) < 4:
         self.response.out.write(template.render(
@@ -325,7 +309,6 @@ class LoginPasswordChange(webapp2.RequestHandler):
             }
           ))
         return None
-
       # Check `current_password` is indeed this user's password
       attempt = users._password_hash(current_password, user.passwordSalt)
       if attempt == user.passwordHash:
@@ -343,7 +326,6 @@ class LoginPasswordChange(webapp2.RequestHandler):
             users.template_values()
           ))
         return None
-
     # Not logged in
     self.redirect(webapp2.uri_for('login'))
 
@@ -359,13 +341,11 @@ class LoginActivate(webapp2.RequestHandler):
         user = user_activation.activate_user()
         if user:
           _login_user_for_id(user.key.string_id())
-          
           self.response.out.write(template.render(
               'ndb_users/templates/activate-success.html',
               users.template_values()
             ))
         return None
-
     continue_uri = self.request.GET.get('continue')
     if user and continue_uri:
       self.redirect(continue_uri.encode('ascii'))
