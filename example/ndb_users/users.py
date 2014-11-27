@@ -48,10 +48,7 @@ def get_current_user():
   """ Returns a User object or None. """
   request = webapp2.get_request()
   cookie_value = request.cookies.get(NDB_USERS_COOKIE_KEY)
-  if not cookie_value:
-    # Generate a Cookie ID...
-    return None
-  else:
+  if cookie_value:
     # Cookie found, validate it!
     user_session = UserSession.user_session_for_id(cookie_value)
     if user_session:
@@ -59,11 +56,7 @@ def get_current_user():
       if user_session.expires > datetime.now():
         user_key = ndb.Key(User, user_session.userId)
         return user_key.get()
-      else:
-        return None
-    else:
-      # Not found
-      return None
+  return None
 
 def create_logout_url(redirect_uri=None):
   """ Destroys the User's session and redirects to `redirect_uri`. """
@@ -143,8 +136,7 @@ def _user_verified(user):
   """
   if NDB_USERS_ENFORCE_EMAIL_VERIFICATION:
     return bool(user.verified)
-  else:
-    return True
+  return True
 
 def _email_sender():
   """ Returns the email address all account activation and password recovery
@@ -270,9 +262,7 @@ class UserActivation(ndb.Model):
       user.put()
       self.key.delete()
       return user
-
     return None
-
 
   @classmethod
   def _generate_activation_token(cls):
