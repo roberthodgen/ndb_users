@@ -60,8 +60,8 @@ def _login_user_for_id(user_id):
 
 def _use_secure_cookies():
   """ Return True if this is the Google App Engine production environment and
-  `users.COOKIE_SECURE` is True. Otherwise return False. """
-  if users.COOKIE_SECURE:
+  `NDB_USERS_COOKIE_SECURE` is True. Otherwise return False. """
+  if NDB_USERS_COOKIE_SECURE:
     if getenv('SERVER_SOFTWARE').startswith('Google App Engine/'):
       return True
   # Default
@@ -79,17 +79,16 @@ def _create_activation_email_for_user_id(user_id):
     continue_uri = request.GET.get('continue')
     if continue_uri:
       query_options['continue'] = continue_uri
-    activation_link = ''.join([request.host_url, webapp2.uri_for('LoginActivate'), '?', urlencode(query_options)])
-    print activation_link
+    activation_url = ''.join([request.host_url,
+      webapp2.uri_for('LoginActivate'), '?', urlencode(query_options)])
     user = ndb.Key(users.User, user_id).get()
     sender_email_address = users._email_sender()
     subject = 'Account Activation'
-    body = """
-Your account has been created! Please confirm your email address by clicking the\
- link below:
+    body = """Your account has been created! Please confirm your email address \
+by clicking the link below:
 
-%s
-""" % activation_link
+{activation_link}
+""".format(activation_link=activation_url)
     mail.send_mail(sender_email_address, user.email, subject, body)
   else:
     return None
@@ -246,7 +245,7 @@ class LoginCreate(webapp2.RequestHandler):
     if user_found < 1:
       # Create a User
       new_user_key = users.User.create_user(email, password)
-      if users.ENFORCE_EMAIL_VERIFICATION:
+      if NDB_USERS_ENFORCE_EMAIL_VERIFICATION:
         _create_activation_email_for_user_id(new_user_key.string_id())
       else:
         # Log this user in!
@@ -255,7 +254,7 @@ class LoginCreate(webapp2.RequestHandler):
           self.redirect(self.request.GET.get('continue').encode('ascii'))
       self.response.out.write(template.render(
         'ndb_users/templates/create-success.html', {
-          'email_verification': users.ENFORCE_EMAIL_VERIFICATION
+          'email_verification': NDB_USERS_ENFORCE_EMAIL_VERIFICATION
         }))
       return None
     else:
