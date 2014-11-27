@@ -1,0 +1,32 @@
+application: ndb-users
+version: 1
+runtime: python27
+api_version: 1
+threadsafe: true
+
+
+handlers:
+
+# ndb_users
+- url: /_login/assets
+  static_dir: ndb_users/assets
+- url: /_login(.*)
+  script: ndb_users.login.app
+  secure: always
+- url: /_ah/mail/.+
+  script: ndb_users.mail.app
+  login: admin
+
+# Homepage
+- url: .*
+  script: main.app
+  secure: always
+
+
+libraries:
+- name: webapp2
+  version: latest
+
+
+inbound_services:
+- mail

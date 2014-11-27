@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>ndb_users - a simply Python user log in system</title>
+
+		<!-- Bootstrap -->
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
+
+		<!-- Optional theme -->
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap-theme.min.css">
+
+		<!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+		<!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+		<!--[if lt IE 9]>
+		  <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+		  <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+		<![endif]-->
+		</head>
+	<body style="padding-top:50px; padding-bottom:20px;">
+		
+		<nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+			<div class="container">
+				<div class="navbar-header">
+					<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+						<span class="icon-bar"></span>
+						<span class="icon-bar"></span>
+						<span class="icon-bar"></span>
+					</button>
+					<a class="navbar-brand" href="/">ndb_users</a>
+				</div>
+				<div id="navbar" class="navbar-collapse collapse">
+					<ul class="nav navbar-nav">
+						<li><a href="/documentation">Documentation</a></li>
+						<li><a href="/protected">Protected Page</a></li>
+					</ul>
+					{% if user %}
+					<a class="btn btn-danger navbar-btn navbar-right" href="{{ logout_uri }}">Log out</a>
+					<p class="navbar-text navbar-right" style="margin-right:15px;">Welcome back, {{ user.email }}.</p>
+					{% else %}
+					<form class="navbar-form navbar-right" role="form" method="post" action="{{ login_uri }}">
+						<div class="form-group">
+							<input type="text" name="email" placeholder="Email address..." class="form-control">
+						</div>
+						<div class="form-group">
+							<input type="password" name="password" placeholder="Password..." class="form-control">
+						</div>
+						<button type="submit" class="btn btn-success">Log in</button>
+					</form>
+					{% endif %}
+				</div>
+			</div>
+		</nav>
+
+		<div class="jumbotron">
+			<div class="container">
+				<h1>Simple user accounts</h1>
+				<p><code>ndb_users</code> is a Python module designed for use on Google App Engine where Google Accounts or OpenID can not be used.</p>
+				<p>Built on Google's <code>ndb</code> Datastore and <code>webapp2</code>; <code>ndb_users</code> works simply in your project:</p>
+				<p><pre><code>from ndb_users import users</code></pre></p>
+				<p>Verify a logged in user as easily as:</p>
+				<p><pre><code>class ProtectedPage(webapp2.RequestHandler):
+  def get(self):
+    """ Return the template if User is logged in. """
+    <strong>user = users.get_current_user()
+    if not user:
+    	# No logged in user
+    	self.abort(401)</strong>
+    self.response.out.write(template.render(
+      'templates/protected-page.html', { 'user': user }))</code></pre></p>
+				<p>
+					<a class="btn btn-default btn-lg" href="{{ login_uri }}">View sample log in page</a>
+					<a class="btn btn-primary btn-lg" href="https://github.com/roberthodgen/ndb_users" role="button">View on GitHub</a>
+				</p>
+			</div>
+		</div>
+
+		<div class="container">
+			<div class="row">
+				<div class="col-md-4">
+					<h2>Extendable</h2>
+					<p>Add additional attributes to a User--like name, address, age, or any property easily stored in Google's NDB Datastore.</p>
+				</div>
+				<div class="col-md-4">
+					<h2>Verify email addresses</h2>
+					<p>Require account activation via email links.</p>
+				</div>
+				<div class="col-md-4">
+					<h2>Forget the headache</h2>
+					<p>Users can request emails to reset forgotten passwords.</p>
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-md-4">
+					<h2>Hashed and salted</h2>
+					<p>Passwords are hashed and salted using sha256.</p>
+				</div>
+				<div class="col-md-4">
+					<h2>JSON or web <code>&lt;form&gt;</code></h2>
+					<p>Log users in via JSON request or submitable form.</p>
+				</div>
+				<div class="col-md-4">
+					<h2>Customizable</h2>
+					<p>Customize the login or logout pages, messages, and more.</p>
+				</div>
+			</div>
+
+			<hr>
+
+			<footer>
+				<p>Copyright &copy; 2014 <a href="http://roberthodgen.com/">Robert Hodgen</a>. Available under the MIT license. <a href="https://github.com/roberthodgen/ndb_users">View on GitHub</a>.</p>
+			</footer>
+
+		</div>
+
+		
+		<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+		<!-- Include all compiled plugins (below), or include individual files as needed -->
+		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
+	</body>
+</html>

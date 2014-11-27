@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>Create account</title>
+
+		<!-- Bootstrap -->
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
+
+		<!-- Optional theme -->
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap-theme.min.css">
+
+		<!-- ndb_users -->
+		<link rel="stylesheet" href="/_login/assets/login.css">
+
+		<!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+		<!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+		<!--[if lt IE 9]>
+		  <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+		  <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+		<![endif]-->
+		</head>
+	<body>
+
+		<div class="container">
+			
+			<form class="form-login" role="form" method="post" action="{{ create_uri }}">
+				
+				<div class="form-color form-color-error">&nbsp;</div>
+				
+				<div class="form-login-item form-header">
+					Create account
+				</div>
+
+				<div class="form-login-item form-message-error text-danger">
+					{% if emailExists %}
+					<p>Email address already in use.</p>
+					{% endif %}
+
+					{% if emailInvalid %}
+					<p>Invalid email address.</p>
+					{% endif %}
+
+					{% if passwordMismatch %}
+					<p>Passwords do not match. Please enter the same password.</p>
+					{% endif %}
+
+					{% if passwordTooShort %}
+					<p>Password is too short: {{ passwordLength }}</p>
+					{% endif %}
+				</div>
+
+				<div class="form-login-item form-body">
+
+					<div class="form-group{% if request.email == None or emailExists or emailInvalid %} has-error{% endif %}">
+						<label class="visible-xs-block">Email address:</label>
+						<input class="form-control" type="email" name="email" value="{{ request.email }}" placeholder="Email address...">
+					</div>
+
+					<div class="form-group{% if request.password == None or passwordMismatch or passwordTooShort %} has-error{% endif %}">
+						<label class="visible-xs-block">Password:</label>
+						<input class="form-control" type="password" name="password" placeholder="Password...">
+					</div>
+
+					<div class="form-group{% if request.password2 == None or passwordMismatch or passwordTooShort %} has-error{% endif %}">
+						<label class="visible-xs-block">Confirm password:</label>
+						<input class="form-control" type="password" name="password2" placeholder="Confirm password...">
+					</div>
+
+					<button type="submit" class="btn btn-default btn-block">Create</button>
+
+				</div>
+				
+				<div class="form-login-item form-footer">
+					<div class="row">
+
+						<div class="col-sm-6">
+							<div class="small text-center">
+								<a class="" href="{{ login_uri }}">Log in</a>
+							</div>
+						</div>
+
+						<div class="col-sm-6">
+							<div class="small text-center">
+								<a class="" href="{{ password_forgot_uri }}">Forgot password?</a>
+							</div>
+						</div>
+
+					</div>
+				</div>
+				
+			</form>
+			
+		</div>
+
+		<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+		<!-- Include all compiled plugins (below), or include individual files as needed -->
+		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
+	</body>
+</html>

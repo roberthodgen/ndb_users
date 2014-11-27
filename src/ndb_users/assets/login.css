@@ -1,0 +1,115 @@
+body {
+	background-color: #efefef;
+	padding-top: 40px;
+	padding-bottom: 40px;
+}
+
+.form-login {
+	max-width: 310px;
+	margin: 0 auto;
+	border-radius: 5px;
+	box-shadow: 0px 3px 6px 0px rgba(0, 0, 0, .08);
+}
+
+.form-login .form-color {
+	border-top-left-radius: 5px;
+	border-top-right-radius: 5px;
+	height: 10px;
+}
+
+.form-login .form-color.form-color-default {
+	background-image: linear-gradient(to left, #ccc, #e3e3e3, #ccc);
+	border: 1px solid #ccc;
+}
+
+.form-login .form-color.form-color-success {
+	background-image: linear-gradient(to left, #5cb85c, #5cb85c, #5cb85c);
+	border: 1px solid #5cb85c;
+}
+
+.form-login .form-color.form-color-success ~ .form-header {
+	border-top-color: #5cb85c;
+}
+
+.form-login .form-color.form-color-error {
+	background-image: linear-gradient(to left, #c12e2a, #d9534f, #c12e2a);
+	border: 1px solid #a94442;
+}
+
+.form-login .form-color.form-color-error ~ .form-header {
+	border-top-color: #a94442;
+}
+
+.form-login .form-header {
+	background-color: white;
+	margin-top: -5px;
+	border: 1px solid #ccc;
+	border-bottom: none;
+	border-top-left-radius: 5px;
+	border-top-right-radius: 5px;
+	padding: 25px 15px 10px 15px;
+	text-align: center;
+	font-weight: bold;
+}
+
+.form-login .form-message-error {
+	background-color: white;
+	border-left: 1px solid #ccc;
+	border-right: 1px solid #ccc;
+	padding: 5px 15px 5px 15px;
+	text-align: center;
+	color: #a94442;
+}
+
+.form-login .form-body {
+	background-color: white;
+	border-left: 1px solid #ccc;
+	border-right: 1px solid #ccc;
+	padding: 15px;
+}
+
+.form-login .form-login-item:last-child {
+	border-bottom-left-radius: 5px;
+	border-bottom-right-radius: 5px;
+	border-bottom: 1px solid #ccc;
+}
+
+.form-login h2 {
+	margin-top-color: 15px;
+}
+
+@media (min-width: 992px) {
+	.form-login .checkbox {
+		margin-bottom: 0px;
+		margin-top: 8px;
+	}
+}
+
+@media (max-width: 992px) {
+	.form-login .checkbox {
+		margin-top: 0px;
+	}
+}
+
+.form-login .form-footer {
+	background-color: #f7f7f7;
+	padding: 10px 15px 10px 15px;
+	border: 1px solid #ccc;
+}
+
+.form-login .form-control {
+	background-color: #f9f9f9;
+	-webkit-transition: border-color ease-in-out .15s, -webkit-box-shadow ease-in-out .15s, background-color ease-in-out .15s;
+		 -o-transition: border-color ease-in-out .15s, box-shadow ease-in-out .15s, background-color ease-in-out .15s;
+			transition: border-color ease-in-out .15s, box-shadow ease-in-out .15s, background-color ease-in-out .15s;
+}
+
+.form-login .form-group .form-control:focus {
+	background-color: white;
+}
+
+.form-login .form-group:not(.has-error) .form-control:focus {
+	border-color: #adadad;
+		-webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075), 0 0 6px #cccccc;
+			box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075), 0 0 6px #cccccc;
+}

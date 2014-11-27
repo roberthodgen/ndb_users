@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>ndb_users - a simply Python user log in system</title>
+
+		<!-- Bootstrap -->
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
+
+		<!-- Optional theme -->
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap-theme.min.css">
+
+		<!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+		<!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+		<!--[if lt IE 9]>
+		  <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+		  <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+		<![endif]-->
+		</head>
+	<body style="padding-top:50px; padding-bottom:20px;">
+		
+		<nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+			<div class="container">
+				<div class="navbar-header">
+					<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+						<span class="icon-bar"></span>
+						<span class="icon-bar"></span>
+						<span class="icon-bar"></span>
+					</button>
+					<a class="navbar-brand" href="/">ndb_users</a>
+				</div>
+				<div id="navbar" class="navbar-collapse collapse">
+					<ul class="nav navbar-nav">
+						<li class="active"><a href="/documentation">Documentation</a></li>
+						<li><a href="/protected">Protected Page</a></li>
+					</ul>
+					{% if user %}
+					<a class="btn btn-danger navbar-btn navbar-right" href="{{ logout_uri }}">Log out</a>
+					<p class="navbar-text navbar-right" style="margin-right:15px;">Welcome back, {{ user.email }}.</p>
+					{% else %}
+					<form class="navbar-form navbar-right" role="form" method="post" action="{{ login_uri }}">
+						<div class="form-group">
+							<input type="text" name="email" placeholder="Email address..." class="form-control">
+						</div>
+						<div class="form-group">
+							<input type="password" name="password" placeholder="Password..." class="form-control">
+						</div>
+						<button type="submit" class="btn btn-success">Log in</button>
+					</form>
+					{% endif %}
+				</div>
+				</div>
+			</div>
+		</nav>
+
+		<div class="container">
+
+			<h1>Documentation</h1>
+
+			<hr>
+
+			<h2>Requirements</h2>
+
+			<p><code>ndb_users</code> has been designed to operate in Google App Engine environment. Therefore, it requires the following:</p>
+			<ul>
+				<li>Google App Engine (production or development).</li>
+				<li><code>webapp2</code> library to be included in <code>app.yaml</code> (or other module configuration file, see <code>libaries</code> section of the sample project's <code>app.yaml</code>).</li>
+				<li>Google's NDB Datastore enabled for the project.</li>
+			</ul>
+
+			<hr>
+
+			<h2>Getting started</h2>
+
+			<p>Copy <code>ndb_users</code> folder into your project.</p>
+
+			<p>In your project's <code>app.yaml</code>, add the following URL handlers in the <code>handlers</code> section:</p>
+
+<p><pre><code>handlers:
+- url: /_login/assets
+  static_dir: ndb_users/assets
+- url: /_login(.*)
+  script: ndb_users.login.app
+  secure: always
+- url: /_ah/mail/.+
+  script: ndb_users.mail.app
+  login: admin
+</code></pre></p>
+
+			<p>In your project's <code>app.yaml</code>, add <code>webapp2</code> under <code>libraries</code>, if not already present:</p>
+
+<p><pre><code>libraries:
+- name: webapp2
+  version: latest
+</code></pre></p>
+
+			<p>In your project's <code>app.yaml</code>, add <code>mail</code> under <code>inbound_services</code>:</p>
+
+<p><pre><code>inbound_services:
+- mail
+</code></pre></p>
+
+			<p>If you already use inbound mail, change the <code>/_mail/.+</code> URL handler to the email address you're expecting to use. This should also match <code>NDB_USERS_EMAIL_SENDER</code> in <code>config.py</code>.</p>
+
+			<p>For example of importing and usage see <code>main.py</code> in the included sample project.</p>
+
+			<h3>Getting the logged in user, if any</h3>
+
+			<p>Inside a <code>webapp2</code> request handler, it's easy to get a <code>User</code> object for the currently logged in user, if any.</p>
+
+			<p>The following code will return a <code>User</code> object or <code>None</code>:
+			<pre><code>user = users.get_current_user()</code></pre></p>
+
+			<p>It's then easy to determine if there is indeed a logged in user:
+			<pre><code>if not user:
+  # No user logged in
+  self.abort(401) # or other response</code></pre></p>
+
+			<h3>Generating log in or log out links</h3>
+
+			<p>To get a link (URI string) to the log in URL use:
+			<pre><code>login_uri = users.create_login_url()</code></pre></p>
+
+			<p>To get a link (URI string) to the log out URL use:
+			<pre><code>logout_uri = users.create_logout_url()</code></pre></p>
+
+			<p>Note: links returned by <code>users.create_login_url()</code> and <code>users.create_logout_url()</code> are relative and do not include a domain. E.g., <code>/_login</code> is returned instead of <code>https://example.com/_login</code>.</p>
+
+			<hr>
+
+			<h2>Users</h2>
+
+			<p>Users, as representated by the <code>Users</code> class, are the primary object. A subclass of <code>ndb.Model</code>, adding or updating a <code>User</code>'s property and calling <code>put()</code> will update the user object in the datastore.</p>
+
+			<p>You may add additional properties to the <code>User</code> class by editing it within the <code>/ndb_users/users.py</code> file.</p>
+
+			<style type="text/css">
+			dt {
+				margin-top: 15px;
+			}
+			dd {
+				margin-bottom: 15px;
+			}
+			</style>
+
+			<dl>
+				<dt><h3><code>email</code></h3></dt>
+				<dd>
+					<p><code>ndb.StringProperty(required=true)</code></p>
+					<p>The user's email address.</p>
+					<p>It is recomended to never modify the <code>email</code> property! <code>User</code> entities with dupliate <code>email</code> properties in the datstore will cause unknown behavior. Additionally, the <code>key</code> property (see <code>ndb.Key</code> and <strong>Keys</strong> note below) is based off the hex sha256 hash of the user's lowercase email address.</p>
+					<p>Note: <code>email</code> is always stored, returned, and hashed in lowercase.</p>
+				</dd>
+				<dt><h3><code>passwordHash</code></h3></dt>
+				<dd>
+					<p>The user's password hashed with <code>passwordSalt</code>.</p>
+					<p>...</p>
+				</dd>
+				<dt><h3><code>passwordSalt</code></h3></dt>
+				<dd>
+					<p>The user's password salt.</p>
+					<p>...</p>
+				</dd>
+				<dt><h3><code>active</code></h3></dt>
+				<dd>
+					<p>Boolean indicating whether this user is active.</p>
+					<p>...</p>
+				</dd>
+				<dt><h3><code>created</code></h3></dt>
+				<dd>
+					<p>The <code>datetime</code> this user was created.</p>
+					<p>...</p>
+				</dd>
+				<dt><h3><code>updated</code></h3></dt>
+				<dd>
+					<p>The <code>datetime</code> this user was last updated.</p>
+					<p>...</p>
+				</dd>
+			</dl>
+
+			
+
+			<h3>Keys</h3>
+
+			<p>The <code>User</code>'s key (<code>ndb.Key</code>) is comprised of a <code>User</code> object and the hex sha256 hash of the user's lowercase email address.</p>
+
+			<p>The code to create a User's key is shown below where <code>user_id</code> is the hex sha256 hash of the user's lowercase email address.</p>
+
+			<p><pre><code>key = ndb.Key(ndb_users.users.User, user_id)</code></pre></p>
+			
+			<hr>
+
+			<h2>User Sessions</h2>
+
+			<p>User sessions, as representated by the <code>UserSession</code> class, store a user's cookie value (<code>user_session_id</code> cookie) and connect it to a <code>User</code> entity by key.</p>
+
+			<p>...</p>
+
+			<hr>
+
+			<h2>Cookies</h2>
+
+			<p><code>ndb_users</code> utilitizes a single cookie: <code>user_session_id</code>, which identifies a user's session.</p>
+
+			<p>...</p>
+
+			<hr>
+
+			<footer>
+				<p>Copyright &copy; 2014 <a href="http://roberthodgen.com/">Robert Hodgen</a>. Available under the MIT license. <a href="https://github.com/roberthodgen/ndb_users">View on GitHub</a>.</p>
+			</footer>
+
+		</div>
+		
+		<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+		<!-- Include all compiled plugins (below), or include individual files as needed -->
+		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
+	</body>
+</html>
