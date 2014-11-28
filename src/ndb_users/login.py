@@ -187,46 +187,50 @@ class LoginCreate(webapp2.RequestHandler):
     # Make sure required POST parameters are present
     if not email or not password or not password2:
       self.response.out.write(template.render(
-        'ndb_users/templates/create-error.html', {
+        'ndb_users/templates/create-error.html',
+        users.template_values(template_values={
           'request': {
             'email': email,
             'password': password,
             'password2': password2
           }
-        }))
+        })))
       return None
     # Check password equality
     if password != password2:
       self.response.out.write(template.render(
-        'ndb_users/templates/create-error.html', {
+        'ndb_users/templates/create-error.html',
+        users.template_values(template_values={
           'request': {
             'email': email,
             'password': password,
             'password2': password2
           }, 'passwordMismatch': True
-        }))
+        })))
       return None
     # Check password length
     if len(password) < 4:
       self.response.out.write(template.render(
-        'ndb_users/templates/create-error.html', {
+        'ndb_users/templates/create-error.html',
+        users.template_values(template_values={
           'request': {
             'email': email,
             'password': password,
             'password2': password2
           }, 'passwordTooShort': True
-        }))
+        })))
       return None
     # Check `email` against regular expression
     if not mail.is_email_valid(email):
       self.response.out.write(template.render(
-        'ndb_users/templates/create-error.html', {
+        'ndb_users/templates/create-error.html',
+        users.template_values(template_values={
           'request': {
             'email': email,
             'password': password,
             'password2': password2
           }, 'emailInvalid': True
-        }))
+        })))
       return None
     # Try finding a User with this email...
     user_found = users.User.query(users.User.email==email).count(1)
@@ -241,20 +245,22 @@ class LoginCreate(webapp2.RequestHandler):
         if self.request.GET.get('continue'):
           self.redirect(self.request.GET.get('continue').encode('ascii'))
       self.response.out.write(template.render(
-        'ndb_users/templates/create-success.html', {
+        'ndb_users/templates/create-success.html',
+        users.template_values(template_values={
           'email_verification': NDB_USERS_ENFORCE_EMAIL_VERIFICATION
-        }))
+        })))
       return None
     else:
       # Already exists
       self.response.out.write(template.render(
-        'ndb_users/templates/create-error.html', {
+        'ndb_users/templates/create-error.html',
+        users.template_values(template_values={
           'request': {
             'email': email,
             'password': password,
             'password2': password2
           }, 'emailExists': True
-        }))
+        })))
       return None
 
 
