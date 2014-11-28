@@ -37,18 +37,21 @@
 
 				<div class="form-login-item form-body">
 					
-					{% if not user %}
-					<p class="text-center">Your account could not be activated at this time. Please check the link and try again.</p>
-
+					{% if token_expired %}
+					<p class="text-center">Activation token has expired.</p>
+					<p class="text-center">Please <a href="{{ login_uri }}">log in</a> and request another activation email.</p>
 					{% else %}
-						{% if user.verified %}
-						<p class="text-center">Your account has already been activated.</p>
+						{% if not user %}
+						<p class="text-center">Your account could not be activated at this time. Please check the link and try again.</p>
 						{% else %}
-						<p class="text-center">Your account could not be activated at this time.</p>
-						{% endif %}
-
-						{% if continue_uri %}
-						<a class="btn btn-default btn-block" href="{{ continue_uri }}">Continue</a>
+							{% if user.verified %}
+							<p class="text-center">Your account has already been activated.</p>
+							{% else %}
+							<p class="text-center">Your account could not be activated at this time.</p>
+							{% endif %}
+							{% if continue_uri %}
+							<a class="btn btn-default btn-block" href="{{ continue_uri }}">Continue</a>
+							{% endif %}
 						{% endif %}
 					{% endif %}
 
