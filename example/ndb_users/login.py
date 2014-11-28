@@ -47,6 +47,8 @@ from ndb_users.config import *
 
 from urllib import urlencode
 
+from datetime import datetime
+
 
 def _login_user_for_id(user_id):
   """ Logs in `user_id` bu creating a UserSession and setting the cookies.
@@ -147,7 +149,8 @@ class LoginPage(webapp2.RequestHandler):
               ))
             return None
           else:
-            # User not verified
+            # User email not verified (send another email)
+            _create_activation_email_for_user_id(user.key.string_id())
             self.response.out.write(template.render(
                 'ndb_users/templates/login-not-verified.html',
                 users.template_values()
@@ -341,23 +344,27 @@ class LoginActivate(webapp2.RequestHandler):
     """ Activate a user's account with for a given activation token. """
     activation_token = self.request.GET.get('token')
     user = users.get_current_user()
+    temp_values = {}
     if activation_token and not user:
       user_activation = ndb.Key(users.UserActivation, activation_token).get()
       if user_activation:
-        user = user_activation.activate_user()
-        if user:
-          _login_user_for_id(user.key.string_id())
-          self.response.out.write(template.render(
-              'ndb_users/templates/activate-success.html',
-              users.template_values()
-            ))
-        return None
+        if user_activation.expires > datetime.now():
+          user = user_activation.activate_user()
+          if user:
+            _login_user_for_id(user.key.string_id())
+            self.response.out.write(template.render(
+                'ndb_users/templates/activate-success.html',
+                users.template_values()
+              ))
+          return None
+        else:
+          temp_values['token_expired'] = True
     continue_uri = self.request.GET.get('continue')
     if user and continue_uri:
       self.redirect(continue_uri.encode('ascii'))
     self.response.out.write(template.render(
         'ndb_users/templates/activate-error.html',
-        users.template_values()
+        users.template_values(template_values=temp_values)
       ))
 
 
