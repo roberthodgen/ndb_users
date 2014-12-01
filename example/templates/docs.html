@@ -37,10 +37,10 @@
 						<li><a href="/protected">Protected Page</a></li>
 					</ul>
 					{% if user %}
-					<a class="btn btn-danger navbar-btn navbar-right" href="{{ logout_uri }}">Log out</a>
+					<a class="btn btn-danger navbar-btn navbar-right" href="{{ logout_url }}">Log out</a>
 					<p class="navbar-text navbar-right" style="margin-right:15px;">Welcome back, {{ user.email }}.</p>
 					{% else %}
-					<form class="navbar-form navbar-right" role="form" method="post" action="{{ login_uri }}">
+					<form class="navbar-form navbar-right" role="form" method="post" action="{{ login_url }}">
 						<div class="form-group">
 							<input type="text" name="email" placeholder="Email address..." class="form-control">
 						</div>
@@ -118,15 +118,29 @@
   # No user logged in
   self.abort(401) # or other response</code></pre></p>
 
-			<h3>Generating log in or log out links</h3>
+			<h3>Generating log in, log out, and other links</h3>
 
-			<p>To get a link (URI string) to the log in URL use:
-			<pre><code>login_uri = users.create_login_url()</code></pre></p>
+			<p>To specify an automatic redirect, provide a relative URI string as the <code>redirect_uri</code> keyword argument for any of the following functions.
+			<pre><code>login_url = users.create_login_url(redirect_uri=webapp2.uri_for('protected'))</code></pre></p>
 
-			<p>To get a link (URI string) to the log out URL use:
-			<pre><code>logout_uri = users.create_logout_url()</code></pre></p>
+			<h4>Log in link</h4>
+			<p><pre><code>login_url = users.create_login_url()</code></pre></p>
 
-			<p>Note: links returned by <code>users.create_login_url()</code> and <code>users.create_logout_url()</code> are relative and do not include a domain. E.g., <code>/_login</code> is returned instead of <code>https://example.com/_login</code>.</p>
+			<h4>Log out link</h4>
+			<p><pre><code>logout_url = users.create_logout_url()</code></pre></p>
+
+			<h4>Password Reset/Recovery</h4>
+			<p><pre><code>password_reset_url = users.create_password_reset_url()</code></pre></p>
+
+			<h4>Change Password</h4>
+			<p><pre><code>password_change_url = users.create_password_change_url()</code></pre></p>
+
+			<h3>401 Unauthorized Handler</h3>
+
+			<p>To use <code>self.abort(401)</code> to return a login page, use <code>users.error_handler_unauthorized</code> as your 401 error handler:
+			<pre><code>app.error_handlers[401] = users.error_handler_unauthorized</code></pre>
+			Note: This will return a <code>HTTP/1.1 401 Unauthorized</code> HTTP header and display a login page.</p>
+			<p>Warning: Should not be used unless the handler is secure-only in your <code>app.yaml</code> configuration file (as this will post using the current protocol, see <code>users.create_login_url()</code>).</p>
 
 			<hr>
 
