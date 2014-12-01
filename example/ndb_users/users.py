@@ -59,30 +59,76 @@ def get_current_user():
   return None
 
 def create_logout_url(redirect_uri=None):
-  """ Destroys the User's session and redirects to `redirect_uri`. """
+  """ Destroys the User's session and redirects to `redirect_uri`.
+  Note: Will return current protocol (i.e. http:// or https://),
+  secure parameter in app.yaml will redirect to secure URL. """
+  request = webapp2.get_request()
   if redirect_uri:
-    return ''.join([NDB_USERS_LOGIN_URI, '?', urlencode({
-        'action': 'logout',
-        'continue': redirect_uri
-      })])
-  return ''.join([NDB_USERS_LOGIN_URI, '?action=logout'])
+    return ''.join([
+        request.host_url,
+        NDB_USERS_LOGIN_URI,
+        '?', urlencode({
+          'action': 'logout',
+          'continue': redirect_uri
+        })
+      ])
+  return ''.join([
+      request.host_url,
+      NDB_USERS_LOGIN_URI, '?action=logout'
+    ])
 
 def create_login_url(redirect_uri=None):
-  """ A login page, upon successful login will redirect to `redirect_uri`. """
+  """ A login page, upon successful login will redirect to `redirect_uri`.
+  Note: Will return current protocol (i.e. http:// or https://),
+  secure parameter in app.yaml will redirect to secure URL. """
+  request = webapp2.get_request()
   if redirect_uri:
-    return ''.join([NDB_USERS_LOGIN_URI, '?', urlencode({
-        'continue': redirect_uri
-      })])
-  return NDB_USERS_LOGIN_URI
+    return ''.join([
+        request.host_url,
+        NDB_USERS_LOGIN_URI, '?', urlencode({
+          'continue': redirect_uri
+        })
+      ])
+  return ''.join([
+      request.host_url,
+      NDB_USERS_LOGIN_URI
+    ])
 
 def create_password_change_url(redirect_uri=None):
-  """ Return a URL for changing the user's password. Redirect optional. """
+  """ Return a URL for changing the user's password. Redirect optional.
+  Note: Will return current protocol (i.e. http:// or https://),
+  secure parameter in app.yaml will redirect to secure URL. """
+  request = webapp2.get_request()
   if redirect_uri:
-    return ''.join([NDB_USERS_LOGIN_PASSWORD_CHANGE_URI, '?', urlencode({
-        'continue': redirect_uri
-      })])
-  else:
-    return NDB_USERS_LOGIN_PASSWORD_CHANGE_URI
+    return ''.join([
+        request.host_url,
+        NDB_USERS_LOGIN_PASSWORD_CHANGE_URI,
+        '?', urlencode({
+          'continue': redirect_uri
+        })
+      ])
+  return ''.join([
+      request.host_url,
+      NDB_USERS_LOGIN_PASSWORD_CHANGE_URI
+    ])
+
+def create_password_reset_url(redirect_uri=None):
+  """ Return a URL for resetting a user's password. Redirect optional.
+  Note: Will return current protocol (i.e. http:// or https://),
+  secure parameter in app.yaml will redirect to secure URL. """
+  request = webapp2.get_request()
+  if redirect_uri:
+    return ''.join([
+        request.host_url,
+        NDB_USERS_LOGIN_PASSWORD_RESET_URI,
+        '?', urlencode({
+            'continue': redirect_uri
+          })
+      ])
+  return ''.join([
+      request.host_url,
+      NDB_USERS_LOGIN_PASSWORD_RESET_URI
+    ])
 
 def _append_query(base, query):
   """ Append `query` to `base` if `query` has length. """

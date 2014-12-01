@@ -37,8 +37,9 @@ class HomePage(webapp2.RequestHandler):
     self.response.out.write(template.render(
         'templates/index.html', {
           'user': user,
-          'login_uri': users.create_login_url(webapp2.uri_for('protected')),
-          'logout_uri': users.create_logout_url(webapp2.uri_for('home'))
+          'login_url': users.create_login_url(webapp2.uri_for('protected')),
+          'logout_url': users.create_logout_url(webapp2.uri_for('home')),
+          'password_reset_url': users.create_password_reset_url(webapp2.uri_for('protected'))
         }
       ))
 
@@ -53,8 +54,8 @@ class ProtectedPage(webapp2.RequestHandler):
       self.response.out.write(template.render(
           'templates/protected-page.html', {
             'user': user,
-            'logout_uri': users.create_logout_url(webapp2.uri_for('home')),
-            'password_change_uri': users.create_password_change_url(
+            'logout_url': users.create_logout_url(webapp2.uri_for('home')),
+            'password_change_url': users.create_password_change_url(
               webapp2.uri_for('protected'))
           }
         ))
@@ -67,9 +68,9 @@ class DocumentationPage(webapp2.RequestHandler):
     self.response.out.write(template.render(
         'templates/docs.html',{
             'user': user,
-            'login_uri': users.create_login_url(
+            'login_url': users.create_login_url(
               webapp2.uri_for('documentation')),
-            'logout_uri': users.create_logout_url(
+            'logout_url': users.create_logout_url(
               webapp2.uri_for('documentation'))
           }
       ))

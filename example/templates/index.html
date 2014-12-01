@@ -37,10 +37,10 @@
 						<li><a href="/protected">Protected Page</a></li>
 					</ul>
 					{% if user %}
-					<a class="btn btn-danger navbar-btn navbar-right" href="{{ logout_uri }}">Log out</a>
+					<a class="btn btn-danger navbar-btn navbar-right" href="{{ logout_url }}">Log out</a>
 					<p class="navbar-text navbar-right" style="margin-right:15px;">Welcome back, {{ user.email }}.</p>
 					{% else %}
-					<form class="navbar-form navbar-right" role="form" method="post" action="{{ login_uri }}">
+					<form class="navbar-form navbar-right" role="form" method="post" action="{{ login_url }}">
 						<div class="form-group">
 							<input type="text" name="email" placeholder="Email address..." class="form-control">
 						</div>
@@ -71,7 +71,7 @@
     self.response.out.write(template.render(
       'templates/protected-page.html', { 'user': user }))</code></pre></p>
 				<p>
-					<a class="btn btn-default btn-lg" href="{{ login_uri }}">View sample log in page</a>
+					<a class="btn btn-default btn-lg" href="{{ login_url }}">View sample log in page</a>
 					<a class="btn btn-primary btn-lg" href="https://github.com/roberthodgen/ndb_users" role="button">View on GitHub</a>
 				</p>
 			</div>
@@ -110,7 +110,7 @@
 			<hr>
 
 			<footer>
-				<p>Copyright &copy; 2014 <a href="http://roberthodgen.com/">Robert Hodgen</a>. Available under the MIT license. <a href="https://github.com/roberthodgen/ndb_users">View on GitHub</a>.</p>
+				<p>Copyright &copy; 2014 <a href="http://roberthodgen.com/">Robert Hodgen</a>. Available under the MIT license. <a href="https://github.com/roberthodgen/ndb_users">View on GitHub</a>. <a href="{{ login_url }}">Log in</a> to your account or <a href="{{ password_reset_url }}">forgot password</a>.</p>
 			</footer>
 
 		</div>
