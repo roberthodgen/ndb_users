@@ -13,6 +13,8 @@ Build on Google's `ndb`/Datastore and `webapp2`, `ndb_users` aims to simply repl
 from ndb_users import users
 ```
 
+More at [live ndb_users documentation](https://ndb-users.appspot.com/documentation_).
+
 ## Features
 
 ##### Ready "Out of the box"
@@ -91,6 +93,8 @@ user = users.get_current_user()
 login_url = users.create_login_url()
 logout_url = users.create_logout_url()
 ```
+
+More documentation available: https://ndb-users.appspot.com/documentation
 
 ## Todo
 
