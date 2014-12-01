@@ -13,7 +13,7 @@ Build on Google's `ndb`/Datastore and `webapp2`, `ndb_users` aims to simply repl
 from ndb_users import users
 ```
 
-More at [live ndb_users documentation](https://ndb-users.appspot.com/documentation_).
+More at [live ndb_users documentation](https://ndb-users.appspot.com/documentation).
 
 ## Features
 
