@@ -108,7 +108,7 @@ def template_values(template_values=dict(), query_options=dict()):
       password_change_uri=_append_query(
         NDB_USERS_LOGIN_PASSWORD_CHANGE_URI, urlencode(query_options)),
       password_forgot_uri=_append_query(
-        NDB_USERS_LOGIN_PASSWORD_RESET_URI, urlencode(query_options))
+        NDB_USERS_LOGIN_PASSWORD_FORGOT_URI, urlencode(query_options))
     )
   else:
     # Default key-value pairs with no user
@@ -118,6 +118,8 @@ def template_values(template_values=dict(), query_options=dict()):
         create_uri=_append_query(
           NDB_USERS_LOGIN_CREATE_URI, urlencode(query_options)),
         password_forgot_uri=_append_query(
+          NDB_USERS_LOGIN_PASSWORD_FORGOT_URI, urlencode(query_options)),
+        password_reset_uri=_append_query(
           NDB_USERS_LOGIN_PASSWORD_RESET_URI, urlencode(query_options))
       )
   return template_values
@@ -130,7 +132,7 @@ def _password_hash(password, salt):
   """ Return a hash of the User's `password` and `salt`. """
   return hashlib.sha256(''.join([password, salt])).hexdigest()
 
-def _user_verified(user):
+def user_verified(user):
   """ Return True if `user.verified` is True or
   `NDB_USERS_ENFORCE_EMAIL_VERIFICATION` is False.
   """
@@ -147,6 +149,11 @@ def _email_sender():
     # Construct using the Application ID
     return ''.join([
       'accounts@', app_identity.get_application_id(), '.appspotmail.com'])
+
+def _generate_token():
+  """ Returns a token of `NDB_USERS_TOKEN_LENGTH` length. """
+  return ''.join(random.SystemRandom().sample(
+      string.hexdigits, NDB_USERS_TOKEN_LENGTH))
 
 def error_handler_unauthorized(request, response, exception):
   """ Used for handling an HTTP/1.1 401 Unauthorized error. Will display the
@@ -201,6 +208,11 @@ class User(ndb.Model):
     return ''.join(random.SystemRandom().sample(''.join([string.digits,
       string.letters, string.punctuation]), NDB_USERS_SALT_LENGTH))
 
+  @classmethod
+  def user_for_email(cls, email):
+    """ Return a User object or None for `email`. """
+    return ndb.Key(User, _user_id_for_email(email)).get()
+
 
 class UserSession(ndb.Model):
   """ UserSession class stores a User's session IDs (`user_session_id` cookie)
@@ -246,7 +258,7 @@ class UserActivation(ndb.Model):
     """ Create a new UserActivation in the ndb datastore for a given
     `user_id`. """
     new_user_activation = UserActivation(
-      key=ndb.Key(UserActivation, UserActivation._generate_activation_token()),
+      key=ndb.Key(UserActivation, _generate_token()),
       userId=user_id,
       expires = datetime.now() + timedelta(days=NDB_USERS_ACTIVATION_DAYS)
     )
@@ -264,7 +276,31 @@ class UserActivation(ndb.Model):
       return user
     return None
 
+class UserRecovery(ndb.Model):
+  """ UserRecovery class stores a User's password recovery token and associates
+  them with a User (via the User's `key`). """
+
+  userId = ndb.StringProperty(required=True)
+  created = ndb.DateTimeProperty(auto_now_add=True)
+  expires = ndb.DateTimeProperty(required=True)
+
   @classmethod
-  def _generate_activation_token(cls):
-    return ''.join(random.SystemRandom().sample(
-      string.hexdigits, NDB_USERS_TOKEN_LENGTH))
+  def create_user_recovery(cls, user_id):
+    """ Create a new UserRecovery in the datastore for a given `user_id`. """
+    new_user_recovery = UserRecovery(
+        key=ndb.Key(UserRecovery, _generate_token()),
+        userId=user_id,
+        expires = datetime.now() + timedelta(days=NDB_USERS_RECOVERY_DAYS)
+      )
+    return new_user_recovery.put()
+
+  @ndb.transactional(xg=True)
+  def reset_password(self, password):
+    """ Reset the User's password to `password` this UserREcovery is assigned to
+    and delete this UserRecovery from the datastore. """
+    user = ndb.Key(User, self.userId).get()
+    if user:
+      if user.update_password(password):
+        self.key.delete()
+        return user
+    return None

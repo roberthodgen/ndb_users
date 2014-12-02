@@ -82,7 +82,7 @@ def _create_activation_email_for_user_id(user_id):
     if continue_uri:
       query_options['continue'] = continue_uri
     activation_url = ''.join([request.host_url,
-      webapp2.uri_for('LoginActivate'), '?', urlencode(query_options)])
+      webapp2.uri_for('loginActivate'), '?', urlencode(query_options)])
     user = ndb.Key(users.User, user_id).get()
     sender_email_address = users._email_sender()
     subject = 'Account Activation'
@@ -91,6 +91,35 @@ by clicking the link below:
 
 {activation_link}
 """.format(activation_link=activation_url)
+    mail.send_mail(sender_email_address, user.email, subject, body)
+
+def _create_recovery_email_for_user_id(user_id):
+  """ Create a password recovery token for `user` and send an email to the
+  User's email address including a link to reset their password. """
+  request = webapp2.get_request()
+  new_user_recovery_key = users.UserRecovery.create_user_recovery(user_id)
+  if new_user_recovery_key:
+    query_options = {
+      'token': new_user_recovery_key.string_id()
+    }
+    continue_uri = request.GET.get('continue')
+    if continue_uri:
+      query_options['continue'] = continue_uri
+    reset_url = ''.join([
+        request.host_url,
+        webapp2.uri_for('loginPasswordReset'),
+        '?', urlencode(query_options)
+      ])
+    user = ndb.Key(users.User, user_id).get()
+    sender_email_address = users._email_sender()
+    subject = 'Password Reset'
+    body = """Reset your password by clicking the link below:
+
+{recovery_link}
+
+You may ignore this email and continue using your current password if you did \
+not request this recovery or remember your current password.
+""".format(recovery_link=reset_url)
     mail.send_mail(sender_email_address, user.email, subject, body)
 
 
@@ -137,7 +166,7 @@ class LoginPage(webapp2.RequestHandler):
         # User found... check Password
         attempt = users._password_hash(password, user.passwordSalt)
         if attempt == user.passwordHash:
-          if users._user_verified(user):
+          if users.user_verified(user):
             # Success
             _login_user_for_id(user.key.string_id())
             # Redirect if requested
@@ -368,12 +397,149 @@ class LoginActivate(webapp2.RequestHandler):
       ))
 
 
-class LoginPasswordReset(webapp2.RequestHandler):
+class LoginPasswordForgot(webapp2.RequestHandler):
   def get(self):
-    self.response.out.write('LoginPasswordReset')
+    """ Display the password recovery form, asking for a user's email. """
+    user = users.get_current_user()
+    if not user:
+      self.response.out.write(template.render(
+          'ndb_users/templates/password-forgot.html',
+          users.template_values()
+        ))
+    else:
+      continue_uri = self.request.GET.get('continue')
+      if continue_uri:
+        self.redirect(continue_uri.encode('ascii'))
+      else:
+        self.redirect(webapp2.uri_for('login'))
 
   def post(self):
-    self.response.out.write('LoginPasswordReset')
+    """ Send a recovery email, if `email` is found. """
+    # Require an email address...
+    user = users.get_current_user()
+    if user:
+      self.redirect(webapp2.uri_for('login'))
+      return None
+    email = self.request.POST.get('email')
+    if email:
+      # Get a user's key for their email address...
+      user = users.User.user_for_email(email)
+      if user:
+        if users.user_verified(user):
+          _create_recovery_email_for_user_id(user.key.string_id())
+          self.response.out.write(template.render(
+              'ndb_users/templates/password-forgot-success.html',
+              users.template_values()
+            ))
+        else:
+          # User not verified
+          self.response.out.write(template.render(
+              'ndb_users/templates/password-forgot-error.html',
+              users.template_values(template_values={
+                  'user_not_verified': True
+                })
+            ))
+      else:
+        self.response.out.write(template.render(
+            'ndb_users/templates/password-forgot-error.html',
+            users.template_values(template_values={
+                'error_email_not_found': True,
+                'email': email
+              })
+          ))
+    else:
+      # No `email` supplied in POST
+      self.response.out.write(template.render(
+          'ndb_users/templates/password-forgot-error.html',
+          users.template_values(template_values={
+              'error_invalid_email': True,
+              'email': email
+            })
+        ))
+
+
+class LoginPasswordReset(webapp2.RequestHandler):
+  def get(self):
+    """ Display a password reset form if the `token` is valid. """
+    token = self.request.GET.get('token')
+    user = users.get_current_user()
+    if token and not user:
+      user_recovery = ndb.Key(users.UserRecovery, token).get()
+      if user_recovery:
+        if user_recovery.expires > datetime.now():
+          self.response.out.write(template.render(
+              'ndb_users/templates/password-reset.html',
+              users.template_values(query_options={
+                  'token': token
+                })
+            ))
+          return None
+    continue_uri = self.request.GET.get('continue')
+    if user and continue_uri:
+      self.redirect(continue_uri.encode('ascii'))
+    self.response.out.write(template.render(
+        'ndb_users/templates/password-reset-error.html',
+        users.template_values(template_values={
+            'token_invalid': True
+          }, query_options={
+            'token': token
+          })
+      ))
+
+  def post(self):
+    """ Reset the user's password for a `token` and passwords. """
+    token = self.request.GET.get('token')
+    user = users.get_current_user()
+    password = self.request.POST.get('password')
+    password2 = self.request.POST.get('password2')
+    if token and not user:
+      # Check passwords match
+      if password != password2:
+        self.response.out.write(template.render(
+            'ndb_users/templates/password-reset-error.html',
+            users.template_values(template_values={
+                'password_mismatch': True
+              }, query_options={
+                'token': token
+              })
+          ))
+        return None
+      # Check password length
+      if len(password) < 4:
+        self.response.out.write(template.render(
+            'ndb_users/templates/password-reset-error.html',
+            users.template_values(template_values={
+                'password_too_short': True
+              }, query_options={
+                'token': token
+              })
+          ))
+        return None
+      # Recover the User
+      user_recovery = ndb.Key(users.UserRecovery, token).get()
+      if user_recovery:
+        if user_recovery.expires > datetime.now():
+          user = user_recovery.reset_password(password)
+          if user:
+            _login_user_for_id(user.key.string_id())
+            self.response.out.write(template.render(
+                'ndb_users/templates/password-change-success.html',
+                users.template_values(query_options={
+                    'token': token
+                  })
+              ))
+          return None
+    continue_uri = self.request.GET.get('continue')
+    if user and continue_uri:
+      self.redirect(continue_uri.encode('ascii'))
+    self.response.out.write(template.render(
+        'ndb_users/templates/password-reset-error.html',
+        users.template_values(template_values={
+          'token_invalid': True
+          }, query_options={
+            'token': token
+          })
+      ))
 
 
 app = webapp2.WSGIApplication([
@@ -403,12 +569,17 @@ app = webapp2.WSGIApplication([
   ), RedirectRoute(
     NDB_USERS_LOGIN_ACTIVATE_URI,
     handler=LoginActivate,
-    name='LoginActivate',
+    name='loginActivate',
+    strict_slash=True
+  ), RedirectRoute(
+    NDB_USERS_LOGIN_PASSWORD_FORGOT_URI,
+    handler=LoginPasswordForgot,
+    name='loginPasswordForgot',
     strict_slash=True
   ), RedirectRoute(
     NDB_USERS_LOGIN_PASSWORD_RESET_URI,
     handler=LoginPasswordReset,
-    name='LoginPasswordReset',
+    name='loginPasswordReset',
     strict_slash=True
   )
 ])
