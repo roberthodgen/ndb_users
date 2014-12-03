@@ -281,12 +281,16 @@ class UserSession(ndb.Model):
       NDB_USERS_SESSION_ID_LENGTH))
 
   @classmethod
-  def create_user_session(cls, user_id):
+  def create_user_session(cls, user_id, extended=False):
     """ Creates a new UserSession in the ndb database for a given `user_id`. """
+    if extended:
+      expires = datetime.now() + timedelta(days=NDB_USERS_SESSION_EXTENDED_DAYS)
+    else:
+      expires = datetime.now() + timedelta(days=NDB_USERS_SESSION_STANDARD_DAYS)
     new_user_session = UserSession(
       key=ndb.Key(UserSession, UserSession._generate_session_id()),
       userId=user_id,
-      expires = datetime.now() + timedelta(days=NDB_USERS_SESSION_EXTENDED_DAYS)
+      expires=expires
     )
     return new_user_session.put()
 
