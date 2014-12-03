@@ -105,4 +105,3 @@ In no specific order. See issue tracker for more.
  - Create styled (HTML) emails.
  - NDB_USERS_SITE_NICKNAME
  - NDB_USERS_DEFAULT_CONTINUE_URI
- - Check that NDB_USERS_ACTIVATION_DAYS actually limits activation
