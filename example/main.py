@@ -39,7 +39,8 @@ class HomePage(webapp2.RequestHandler):
           'user': user,
           'login_url': users.create_login_url(webapp2.uri_for('protected')),
           'logout_url': users.create_logout_url(webapp2.uri_for('home')),
-          'password_reset_url': users.create_password_reset_url(webapp2.uri_for('protected'))
+          'password_reset_url': users.create_password_forgot_url(
+            webapp2.uri_for('protected'))
         }
       ))
 
