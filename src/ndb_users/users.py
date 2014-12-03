@@ -120,14 +120,14 @@ def create_password_forgot_url(redirect_uri=None):
   if redirect_uri:
     return ''.join([
         request.host_url,
-        NDB_USERS_LOGIN_PASSWORD_RESET_URI,
+        NDB_USERS_LOGIN_PASSWORD_FORGOT_URI,
         '?', urlencode({
             'continue': redirect_uri
           })
       ])
   return ''.join([
       request.host_url,
-      NDB_USERS_LOGIN_PASSWORD_RESET_URI
+      NDB_USERS_LOGIN_PASSWORD_FORGOT_URI
     ])
 
 def _append_query(base, query):

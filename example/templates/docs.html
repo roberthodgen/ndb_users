@@ -223,6 +223,11 @@
 			<hr>
 
 			<footer>
+				{% if user %}
+				<p><a href="{{ logout_url }}">Log out</a> or <a href="{{ password_change_url }}">change your password</a>.</p>
+				{% else %}
+				<p><a href="{{ login_url }}">Log in</a> to your account. <a href="{{ password_forgot_url }}">Forgot password?</a></p>
+				{% endif %}
 				<p>Copyright &copy; 2014 <a href="http://roberthodgen.com/">Robert Hodgen</a>. Available under the MIT license. <a href="https://github.com/roberthodgen/ndb_users">View on GitHub</a>.</p>
 			</footer>
 
