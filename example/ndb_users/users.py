@@ -112,7 +112,7 @@ def create_password_change_url(redirect_uri=None):
       NDB_USERS_LOGIN_PASSWORD_CHANGE_URI
     ])
 
-def create_password_reset_url(redirect_uri=None):
+def create_password_forgot_url(redirect_uri=None):
   """ Return a URL for resetting a user's password. Redirect optional.
   Note: Will return current protocol (i.e. http:// or https://),
   secure parameter in app.yaml will redirect to secure URL. """
@@ -120,14 +120,14 @@ def create_password_reset_url(redirect_uri=None):
   if redirect_uri:
     return ''.join([
         request.host_url,
-        NDB_USERS_LOGIN_PASSWORD_RESET_URI,
+        NDB_USERS_LOGIN_PASSWORD_FORGOT_URI,
         '?', urlencode({
             'continue': redirect_uri
           })
       ])
   return ''.join([
       request.host_url,
-      NDB_USERS_LOGIN_PASSWORD_RESET_URI
+      NDB_USERS_LOGIN_PASSWORD_FORGOT_URI
     ])
 
 def _append_query(base, query):

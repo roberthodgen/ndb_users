@@ -130,7 +130,7 @@
 			<p><pre><code>logout_url = users.create_logout_url()</code></pre></p>
 
 			<h4>Password Reset/Recovery</h4>
-			<p><pre><code>password_reset_url = users.create_password_reset_url()</code></pre></p>
+			<p><pre><code>password_reset_url = users.create_password_forgot_url()</code></pre></p>
 
 			<h4>Change Password</h4>
 			<p><pre><code>password_change_url = users.create_password_change_url()</code></pre></p>
@@ -223,6 +223,11 @@
 			<hr>
 
 			<footer>
+				{% if user %}
+				<p><a href="{{ logout_url }}">Log out</a> or <a href="{{ password_change_url }}">change your password</a>.</p>
+				{% else %}
+				<p><a href="{{ login_url }}">Log in</a> to your account. <a href="{{ password_forgot_url }}">Forgot password?</a></p>
+				{% endif %}
 				<p>Copyright &copy; 2014 <a href="http://roberthodgen.com/">Robert Hodgen</a>. Available under the MIT license. <a href="https://github.com/roberthodgen/ndb_users">View on GitHub</a>.</p>
 			</footer>
 
