@@ -33,6 +33,8 @@ from google.appengine.ext import ndb
 
 import json
 
+import logging
+
 import hashlib
 
 from google.appengine.ext.webapp import template
@@ -47,17 +49,26 @@ from ndb_users.config import *
 
 from urllib import urlencode
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
-def _login_user_for_id(user_id):
-  """ Logs in `user_id` bu creating a UserSession and setting the cookies.
+def _login_user_for_id(user_id, extended=False):
+  """ Logs in the user identified by `user_id` by creating a UserSession and
+  setting the cookies. Will create an extended session if `extended` is True.
   Note: Don't call this function except by logic within this module! """
-  user_session_key = users.UserSession.create_user_session(user_id)
-  webapp2.get_request().response.set_cookie(
+  user_session_key = users.UserSession.create_user_session(user_id,
+    extended=extended)
+  request = webapp2.get_request()
+  options = {
+    'secure': _use_secure_cookies()
+  }
+  if extended:
+    options['expires'] = datetime.now() + timedelta(
+      days=NDB_USERS_SESSION_EXTENDED_DAYS)
+  request.response.set_cookie(
     NDB_USERS_COOKIE_KEY,
     user_session_key.string_id(),
-    secure=_use_secure_cookies()
+    **options
   )
 
 def _use_secure_cookies():
@@ -125,7 +136,6 @@ not request this recovery or remember your current password.
 
 class LoginPage(webapp2.RequestHandler):
   def get(self):
-    
     user = users.get_current_user()
     if user:
       if 'action' in self.request.GET:
@@ -137,28 +147,29 @@ class LoginPage(webapp2.RequestHandler):
           if self.request.GET.get('continue'):
             self.redirect(self.request.GET.get('continue').encode('ascii'))
           self.response.out.write(template.render(
-              'ndb_users/templates/logout-success.html',
-              users.template_values()
-            ))
+            'ndb_users/templates/logout-success.html',
+            users.template_values()
+          ))
       else:
         if self.request.GET.get('continue'):
           self.redirect(self.request.GET.get('continue').encode('ascii'))
         self.response.out.write(template.render(
-            'ndb_users/templates/login-success.html',
-            users.template_values()
-          ))
+          'ndb_users/templates/login-success.html',
+          users.template_values()
+        ))
       return None
     # Path and serve template
     self.response.out.write(template.render(
-        'ndb_users/templates/login.html',
-        users.template_values()
-      ))
+      'ndb_users/templates/login.html',
+      users.template_values()
+    ))
 
   def post(self):
     """ Log in a user via POST'ed `email` and `password` values. """
     # Make sure required POST parameters are present
     email = self.request.POST.get('email')
     password = self.request.POST.get('password')
+    extended = bool(self.request.POST.get('extended'))
     if email and password:
       # Get a User for `email` and `password`
       user = ndb.Key(users.User, users._user_id_for_email(email.lower())).get()
@@ -168,28 +179,30 @@ class LoginPage(webapp2.RequestHandler):
         if attempt == user.passwordHash:
           if users.user_verified(user):
             # Success
-            _login_user_for_id(user.key.string_id())
+            _login_user_for_id(user.key.string_id(), extended=extended)
             # Redirect if requested
             if self.request.GET.get('continue'):
               self.redirect(self.request.GET['continue'].encode('ascii'))
             self.response.out.write(template.render(
-                'ndb_users/templates/login-success.html',
-                users.template_values()
-              ))
+              'ndb_users/templates/login-success.html',
+              users.template_values(template_values={
+                  'user': user
+                })
+            ))
             return None
           else:
             # User email not verified (send another email)
             _create_activation_email_for_user_id(user.key.string_id())
             self.response.out.write(template.render(
-                'ndb_users/templates/login-not-verified.html',
-                users.template_values()
-              ))
+              'ndb_users/templates/login-not-verified.html',
+              users.template_values()
+            ))
             return None
     # Error
     self.response.out.write(template.render(
-        'ndb_users/templates/login-error.html',
-        users.template_values()
-      ))
+      'ndb_users/templates/login-error.html',
+      users.template_values()
+    ))
 
 
 class JsonLogin(webapp2.RequestHandler):
@@ -206,9 +219,9 @@ class LoginCreate(webapp2.RequestHandler):
     # Ensure user not logged in
     user = users.get_current_user()
     self.response.out.write(template.render(
-        'ndb_users/templates/create.html',
-        users.template_values()
-      ))
+      'ndb_users/templates/create.html',
+      users.template_values()
+    ))
 
   def post(self):
     """ Create a new User with `email` and `password` (confirmed by
@@ -226,7 +239,8 @@ class LoginCreate(webapp2.RequestHandler):
             'password': password,
             'password2': password2
           }
-        })))
+        })
+      ))
       return None
     # Check password equality
     if password != password2:
@@ -238,7 +252,8 @@ class LoginCreate(webapp2.RequestHandler):
             'password': password,
             'password2': password2
           }, 'passwordMismatch': True
-        })))
+        })
+      ))
       return None
     # Check password length
     if len(password) < 4:
@@ -250,7 +265,8 @@ class LoginCreate(webapp2.RequestHandler):
             'password': password,
             'password2': password2
           }, 'passwordTooShort': True
-        })))
+        })
+      ))
       return None
     # Check `email` against regular expression
     if not mail.is_email_valid(email):
@@ -262,7 +278,8 @@ class LoginCreate(webapp2.RequestHandler):
             'password': password,
             'password2': password2
           }, 'emailInvalid': True
-        })))
+        })
+      ))
       return None
     # Try finding a User with this email...
     user_found = users.User.query(users.User.email==email).count(1)
@@ -280,7 +297,8 @@ class LoginCreate(webapp2.RequestHandler):
         'ndb_users/templates/create-success.html',
         users.template_values(template_values={
           'email_verification': NDB_USERS_ENFORCE_EMAIL_VERIFICATION
-        })))
+        })
+      ))
       return None
     else:
       # Already exists
@@ -292,7 +310,8 @@ class LoginCreate(webapp2.RequestHandler):
             'password': password,
             'password2': password2
           }, 'emailExists': True
-        })))
+        })
+      ))
       return None
 
 
@@ -310,9 +329,9 @@ class LoginPasswordChange(webapp2.RequestHandler):
     user = users.get_current_user()
     if user:
       self.response.out.write(template.render(
-            'ndb_users/templates/password-change.html',
-            users.template_values()
-          ))
+        'ndb_users/templates/password-change.html',
+        users.template_values()
+      ))
       return None
     # No logged in user
     self.redirect(webapp2.uri_for('login'))
@@ -327,25 +346,25 @@ class LoginPasswordChange(webapp2.RequestHandler):
       # Make sure required POST parameters are present
       if not current_password or not new_password or not new_password2:
         self.response.out.write(template.render(
-            'ndb_users/templates/password-change-error.html',
-            users.template_values()
-          ))
+          'ndb_users/templates/password-change-error.html',
+          users.template_values()
+        ))
         return None
       # Check password equality
       if new_password != new_password2:
         self.response.out.write(template.render(
-            'ndb_users/templates/password-change-error.html', {
-              'passwordMismatch': True
-            }
-          ))
+          'ndb_users/templates/password-change-error.html', {
+            'passwordMismatch': True
+          }
+        ))
         return None
       # Check password length
       if len(new_password) < 4:
         self.response.out.write(template.render(
-            'ndb_users/templates/password-change-error.html', {
-              'passwordTooShort': True
-            }
-          ))
+          'ndb_users/templates/password-change-error.html', {
+            'passwordTooShort': True
+          }
+        ))
         return None
       # Check `current_password` is indeed this user's password
       attempt = users._password_hash(current_password, user.passwordSalt)
@@ -353,16 +372,16 @@ class LoginPasswordChange(webapp2.RequestHandler):
         # Correct password; update to `new_password`
         user.update_password(new_password)
         self.response.out.write(template.render(
-            'ndb_users/templates/password-change-success.html',
-            users.template_values()
-          ))
+          'ndb_users/templates/password-change-success.html',
+          users.template_values()
+        ))
         return None
       else:
         # Wrong `current_password)
         self.response.out.write(template.render(
-            'ndb_users/templates/password-change-error.html',
-            users.template_values()
-          ))
+          'ndb_users/templates/password-change-error.html',
+          users.template_values()
+        ))
         return None
     # Not logged in
     self.redirect(webapp2.uri_for('login'))
@@ -382,9 +401,9 @@ class LoginActivate(webapp2.RequestHandler):
           if user:
             _login_user_for_id(user.key.string_id())
             self.response.out.write(template.render(
-                'ndb_users/templates/activate-success.html',
-                users.template_values()
-              ))
+              'ndb_users/templates/activate-success.html',
+              users.template_values()
+            ))
           return None
         else:
           temp_values['token_expired'] = True
@@ -392,9 +411,9 @@ class LoginActivate(webapp2.RequestHandler):
     if user and continue_uri:
       self.redirect(continue_uri.encode('ascii'))
     self.response.out.write(template.render(
-        'ndb_users/templates/activate-error.html',
-        users.template_values(template_values=temp_values)
-      ))
+      'ndb_users/templates/activate-error.html',
+      users.template_values(template_values=temp_values)
+    ))
 
 
 class LoginPasswordForgot(webapp2.RequestHandler):
@@ -403,9 +422,9 @@ class LoginPasswordForgot(webapp2.RequestHandler):
     user = users.get_current_user()
     if not user:
       self.response.out.write(template.render(
-          'ndb_users/templates/password-forgot.html',
-          users.template_values()
-        ))
+        'ndb_users/templates/password-forgot.html',
+        users.template_values()
+      ))
     else:
       continue_uri = self.request.GET.get('continue')
       if continue_uri:
@@ -428,34 +447,34 @@ class LoginPasswordForgot(webapp2.RequestHandler):
         if users.user_verified(user):
           _create_recovery_email_for_user_id(user.key.string_id())
           self.response.out.write(template.render(
-              'ndb_users/templates/password-forgot-success.html',
-              users.template_values()
-            ))
+            'ndb_users/templates/password-forgot-success.html',
+            users.template_values()
+          ))
         else:
           # User not verified
           self.response.out.write(template.render(
-              'ndb_users/templates/password-forgot-error.html',
-              users.template_values(template_values={
-                  'user_not_verified': True
-                })
-            ))
-      else:
-        self.response.out.write(template.render(
             'ndb_users/templates/password-forgot-error.html',
             users.template_values(template_values={
-                'error_email_not_found': True,
-                'email': email
+                'user_not_verified': True
               })
           ))
-    else:
-      # No `email` supplied in POST
-      self.response.out.write(template.render(
+      else:
+        self.response.out.write(template.render(
           'ndb_users/templates/password-forgot-error.html',
           users.template_values(template_values={
-              'error_invalid_email': True,
+              'error_email_not_found': True,
               'email': email
             })
         ))
+    else:
+      # No `email` supplied in POST
+      self.response.out.write(template.render(
+        'ndb_users/templates/password-forgot-error.html',
+        users.template_values(template_values={
+            'error_invalid_email': True,
+            'email': email
+          })
+      ))
 
 
 class LoginPasswordReset(webapp2.RequestHandler):
@@ -468,23 +487,23 @@ class LoginPasswordReset(webapp2.RequestHandler):
       if user_recovery:
         if user_recovery.expires > datetime.now():
           self.response.out.write(template.render(
-              'ndb_users/templates/password-reset.html',
-              users.template_values(query_options={
-                  'token': token
-                })
-            ))
+            'ndb_users/templates/password-reset.html',
+            users.template_values(query_options={
+                'token': token
+              })
+          ))
           return None
     continue_uri = self.request.GET.get('continue')
     if user and continue_uri:
       self.redirect(continue_uri.encode('ascii'))
     self.response.out.write(template.render(
-        'ndb_users/templates/password-reset-error.html',
-        users.template_values(template_values={
-            'token_invalid': True
-          }, query_options={
-            'token': token
-          })
-      ))
+      'ndb_users/templates/password-reset-error.html',
+      users.template_values(template_values={
+          'token_invalid': True
+        }, query_options={
+          'token': token
+        })
+    ))
 
   def post(self):
     """ Reset the user's password for a `token` and passwords. """
@@ -496,24 +515,24 @@ class LoginPasswordReset(webapp2.RequestHandler):
       # Check passwords match
       if password != password2:
         self.response.out.write(template.render(
-            'ndb_users/templates/password-reset-error.html',
-            users.template_values(template_values={
-                'password_mismatch': True
-              }, query_options={
-                'token': token
-              })
-          ))
+          'ndb_users/templates/password-reset-error.html',
+          users.template_values(template_values={
+              'password_mismatch': True
+            }, query_options={
+              'token': token
+            })
+        ))
         return None
       # Check password length
       if len(password) < 4:
         self.response.out.write(template.render(
-            'ndb_users/templates/password-reset-error.html',
-            users.template_values(template_values={
-                'password_too_short': True
-              }, query_options={
-                'token': token
-              })
-          ))
+          'ndb_users/templates/password-reset-error.html',
+          users.template_values(template_values={
+              'password_too_short': True
+            }, query_options={
+              'token': token
+            })
+        ))
         return None
       # Recover the User
       user_recovery = ndb.Key(users.UserRecovery, token).get()
@@ -523,23 +542,23 @@ class LoginPasswordReset(webapp2.RequestHandler):
           if user:
             _login_user_for_id(user.key.string_id())
             self.response.out.write(template.render(
-                'ndb_users/templates/password-change-success.html',
-                users.template_values(query_options={
-                    'token': token
-                  })
-              ))
+              'ndb_users/templates/password-change-success.html',
+              users.template_values(query_options={
+                  'token': token
+                })
+            ))
           return None
     continue_uri = self.request.GET.get('continue')
     if user and continue_uri:
       self.redirect(continue_uri.encode('ascii'))
     self.response.out.write(template.render(
-        'ndb_users/templates/password-reset-error.html',
-        users.template_values(template_values={
-          'token_invalid': True
-          }, query_options={
-            'token': token
-          })
-      ))
+      'ndb_users/templates/password-reset-error.html',
+      users.template_values(template_values={
+        'token_invalid': True
+        }, query_options={
+          'token': token
+        })
+    ))
 
 
 app = webapp2.WSGIApplication([
@@ -587,12 +606,14 @@ app = webapp2.WSGIApplication([
 
 def not_found_error_page(request, response, exception):
   """ Used for HTTP/1.1 404 message output """
+  logging.exception(exception)
   response.write('Oops! I could swear this page was here! [HTTP/1.1 404 Not Fou\
 nd]')
   response.set_status(404)
 
 def internal_server_error_page(request, response, exception):
   """ Used for HTTP/1.1 500 message output """
+  logging.exception(exception)
   response.write('Oops! An internal server error has occurred. [HTTP/1.1 500 In\
 ternal Server Error]')
   response.set_status(500)

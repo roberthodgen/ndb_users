@@ -48,6 +48,10 @@ set in both the cookies sent to users and value stored in ndb
 (`UserSession.expires`). """
 NDB_USERS_SESSION_EXTENDED_DAYS = 90
 
+""" The number of days a standard (non extended) user session would remain
+active. Will be sent in the `UserSession.expires` but NOT the cookie. """
+NDB_USERS_SESSION_STANDARD_DAYS = 1
+
 """ The number of days a user's activation token remains active. """
 NDB_USERS_ACTIVATION_DAYS = 7
 
