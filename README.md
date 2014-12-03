@@ -99,7 +99,6 @@ More documentation available: https://ndb-users.appspot.com/documentation
 ## Todo
 
 In no specific order. See issue tracker for more.
- - Complete _Forgot Password_ feature.
  - Differientiate "extended" user sessions.
  - Complete JSON API
  - Integrate a default link "back" or "home"

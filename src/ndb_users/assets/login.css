@@ -61,6 +61,14 @@ body {
 	color: #a94442;
 }
 
+.form-login .form-message-default {
+	background-color: white;
+	border-left: 1px solid #ccc;
+	border-right: 1px solid #ccc;
+	padding: 5px 15px 5px 15px;
+	text-align: center;
+}
+
 .form-login .form-body {
 	background-color: white;
 	border-left: 1px solid #ccc;

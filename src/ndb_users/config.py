@@ -51,6 +51,9 @@ NDB_USERS_SESSION_EXTENDED_DAYS = 90
 """ The number of days a user's activation token remains active. """
 NDB_USERS_ACTIVATION_DAYS = 7
 
+""" The number of days a user's password recovery token remains active. """
+NDB_USERS_RECOVERY_DAYS = 1
+
 """ The email address user activation and password recovery emails come from.
 Note: this must be either *@appid.appspotmail.com or a project
 administrator's email address. When set to False the email sender will be
@@ -79,5 +82,6 @@ NDB_USERS_LOGIN_URI                 = '/_login'
 NDB_USERS_LOGIN_CREATE_URI          = '/_login/create'
 NDB_USERS_LOGIN_ACTIVATE_URI        = '/_login/activate'
 NDB_USERS_LOGIN_PASSWORD_CHANGE_URI = '/_login/password/change'
+NDB_USERS_LOGIN_PASSWORD_FORGOT_URI = '/_login/password/forgot'
 NDB_USERS_LOGIN_PASSWORD_RESET_URI  = '/_login/password/reset'
 
