@@ -104,7 +104,6 @@ In no specific order. See issue tracker for more.
  - Integrate a default link "back" or "home"
  - Check for bounced/rejected emails
  - Create styled (HTML) emails.
- - Improve `users.create_login_url()`, ... so links returned include `http://` or `https://` and correct host. Currently only returns a URI (relative)
  - NDB_USERS_SITE_NICKNAME
  - NDB_USERS_DEFAULT_CONTINUE_URI
  - Check that NDB_USERS_ACTIVATION_DAYS actually limits activation
