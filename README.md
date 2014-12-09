@@ -13,6 +13,8 @@ Build on Google's `ndb` Datastore and `webapp2`, `ndb_users` is a simple alterna
 from ndb_users import users
 ```
 
+![ndb_users login screen shot](http://storage.googleapis.com/ndb-users.appspot.com/ndb_users-login.png)
+
 More at [live ndb_users documentation](https://ndb-users.appspot.com/documentation).
 
 ## Features
