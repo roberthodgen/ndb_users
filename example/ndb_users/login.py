@@ -192,7 +192,7 @@ class LoginPage(webapp2.RequestHandler):
               'ndb_users/templates/login-success.html',
               users.template_values(template_values={
                   'user': user
-                })
+                }, user=user)
             ))
             return None
           else:

@@ -136,7 +136,7 @@ def _append_query(base, query):
     return ''.join([base, '?', query])
   return base
 
-def template_values(template_values=dict(), query_options=dict()):
+def template_values(template_values=dict(), query_options=dict(), user=None):
   """ Return `template_values` plus the default key-value pairs. """
   request = webapp2.get_request()
   continue_uri = request.GET.get('continue')
@@ -145,7 +145,9 @@ def template_values(template_values=dict(), query_options=dict()):
     template_values.update(continue_uri=continue_uri)
   logout_query_options = query_options.copy()
   logout_query_options['action'] = 'logout'
-  user = get_current_user()
+  if not user:
+    # Only fetch via get_current_user() if `user` kwarg is None
+    user = get_current_user()
   if user:
     # Default key-value pairs with logged in user
     template_values.update(user={ 'email': user.email },
