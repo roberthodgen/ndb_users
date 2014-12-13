@@ -221,7 +221,7 @@ class JsonLogin(webapp2.RequestHandler):
       action = self.request.GET.get('action')
       if action == 'logout':
         _logout_user()
-        del response_object['user']
+        response_object['user'] = dict()
     self.response.content_type = 'application/json'
     self.response.out.write(json.dumps(response_object))
 
