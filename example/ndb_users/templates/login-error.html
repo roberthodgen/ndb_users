@@ -55,7 +55,11 @@
 						<div class="col-md-6">
 							<div class="checkbox">
 								<label>
+									{% if extended %}
+									<input type="checkbox" value="true" name="extended" checked>
+									{% else %}
 									<input type="checkbox" value="true" name="extended">
+									{% endif %}
 									Remember me
 								</label>
 							</div>
