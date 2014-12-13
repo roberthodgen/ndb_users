@@ -243,15 +243,18 @@ class JsonLogin(webapp2.RequestHandler):
             # Success
             _login_user_for_id(user.key.string_id(), extended=extended)
             response_object['user'] = user.json_object()
+            self.response.content_type = 'application/json'
             self.response.out.write(json.dumps(response_object))
             return None
           else:
             # User email not verified (send another email)
             _create_activation_email_for_user_id(user.key.string_id())
             response_object['user_not_verified'] = True
+            self.response.content_type = 'application/json'
             self.response.out.write(json.dumps(response_object))
             return None
       self.response_object['user_not_found'] = True
+      self.response.content_type = 'application/json'
       self.response.out.write(json.dumps(response_object))
     else:
       self.abort(400)
@@ -360,11 +363,49 @@ class LoginCreate(webapp2.RequestHandler):
 
 
 class JsonLoginCreate(webapp2.RequestHandler):
-  def get(self):
-    self.response.out.write('JsonLoginCreate')
-
   def post(self):
-    self.response.out.write('JsonLoginCreate')
+    """ Create a new user for the supplied `email` and `password`. """
+    response_object = dict()
+    user = users.get_current_user()
+    request_object = json.loads(self.request.body)
+    if not user:
+      email = request_object.get('email')
+      password = request_object.get('password')
+      if email and password:
+        # Check password length
+        if len(password) < 4:
+          response['password_too_short'] = True
+          self.response.content_type = 'application/json'
+          self.response.out.write(json.dumps(response_object))
+          return None
+        # Check `email`
+        if not mail.is_email_valid(email):
+          response_object['email_invalid'] = True
+          self.response.content_type = 'application/json'
+          self.response.out.write(json.dumps(response_object))
+          return None
+        # Try finding a User with this email...
+        user_found = users.User.query(users.User.email==email).count(1)
+        if user_found < 1:
+          # Create a User
+          new_user_key = users.User.create_user(email, password)
+          response_object['user'] = new_user_key.get().json_object()
+          if NDB_USERS_ENFORCE_EMAIL_VERIFICATION:
+            _create_activation_email_for_user_id(new_user_key.string_id())
+            response_object['email_verification'] = True
+          else:
+            # Log this user in!
+            _login_user_for_id(new_user_key.string_id())
+          self.response.content_type = 'application/json'
+          self.response.out.write(json.dumps(response_object))
+          return None
+        else:
+          # Already exists
+          response_object['email_in_use'] = True
+          self.response.content_type = 'application/json'
+          self.response.out.write(json.dumps(response_object))
+          return None
+    self.abort(400) # no `email` and/or `password`
 
 
 class LoginPasswordChange(webapp2.RequestHandler):
