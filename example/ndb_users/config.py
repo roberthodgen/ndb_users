@@ -89,3 +89,11 @@ NDB_USERS_LOGIN_PASSWORD_CHANGE_URI = '/_login/password/change'
 NDB_USERS_LOGIN_PASSWORD_FORGOT_URI = '/_login/password/forgot'
 NDB_USERS_LOGIN_PASSWORD_RESET_URI  = '/_login/password/reset'
 
+""" API paths. Warning: Do not change `/_login` prefix unless module URL
+handlers are updated in your .yaml file. """
+NDB_USERS_LOGIN_API_PATH                 = '/_login.json'
+NDB_USERS_LOGIN_CREATE_API_PATH          = '/_login/create.json'
+NDB_USERS_LOGIN_ACTIVATE_API_PATH        = '/_login/activate.json'
+NDB_USERS_LOGIN_PASSWORD_CHANGE_API_PATH = '/_login/password/change.json'
+NDB_USERS_LOGIN_PASSWORD_FORGOT_API_PATH = '/_login/password/forgot.json'
+NDB_USERS_LOGIN_PASSWORD_RESET_API_PATH  = '/_login/password/reset.json'

@@ -71,6 +71,14 @@ def _login_user_for_id(user_id, extended=False):
     **options
   )
 
+def _logout_user():
+  """ Delete the cookie and terminate the UserSession. """
+  request = webapp2.get_request()
+  cookie_value = request.cookies.get(NDB_USERS_COOKIE_KEY)
+  if cookie_value:
+    ndb.Key(users.UserSession, cookie_value).delete()
+    request.response.delete_cookie(NDB_USERS_COOKIE_KEY)
+
 def _use_secure_cookies():
   """ Return True if this is the Google App Engine production environment and
   `NDB_USERS_COOKIE_SECURE` is True. Otherwise return False. """
@@ -138,18 +146,15 @@ class LoginPage(webapp2.RequestHandler):
   def get(self):
     user = users.get_current_user()
     if user:
-      if 'action' in self.request.GET:
-        if self.request.GET['action'] == 'logout':
-          cookie_value = self.request.cookies.get(NDB_USERS_COOKIE_KEY)
-          if cookie_value:
-            ndb.Key(users.UserSession, cookie_value).delete()
-            self.response.delete_cookie(NDB_USERS_COOKIE_KEY)
-          if self.request.GET.get('continue'):
-            self.redirect(self.request.GET.get('continue').encode('ascii'))
-          self.response.out.write(template.render(
-            'ndb_users/templates/logout-success.html',
-            users.template_values()
-          ))
+      action = self.request.GET.get('action')
+      if action == 'logout':
+        _logout_user()
+        if self.request.GET.get('continue'):
+          self.redirect(self.request.GET.get('continue').encode('ascii'))
+        self.response.out.write(template.render(
+          'ndb_users/templates/logout-success.html',
+          users.template_values()
+        ))
       else:
         if self.request.GET.get('continue'):
           self.redirect(self.request.GET.get('continue').encode('ascii'))
@@ -207,10 +212,49 @@ class LoginPage(webapp2.RequestHandler):
 
 class JsonLogin(webapp2.RequestHandler):
   def get(self):
-    """ JSON GET Request. """
+    """ Return a `user` if logged in; empty object if no user; handle logging
+    out users via JSON request. """
+    response_object = dict()
+    user = users.get_current_user()
+    if user:
+      response_object['user'] = user.json_object()
+      action = self.request.GET.get('action')
+      if action == 'logout':
+        _logout_user()
+        del response_object['user']
+    self.response.content_type = 'application/json'
+    self.response.out.write(json.dumps(response_object))
 
   def post(self):
-    """ JSON POST Request. """
+    """ Log in a user via supplied JSON `email` and `password` values. """
+    request_object = json.loads(self.request.body)
+    email = request_object.get('email')
+    password = request_object.get('password')
+    extended = request_object.get('extended')
+    response_object = dict()
+    if email and password:
+      # Get a User for `email` and `password`
+      user = ndb.Key(users.User, users._user_id_for_email(email.lower())).get()
+      if user:
+        # User found... check Password
+        attempt = users._password_hash(password, user.passwordSalt)
+        if attempt == user.passwordHash:
+          if users.user_verified(user):
+            # Success
+            _login_user_for_id(user.key.string_id(), extended=extended)
+            response_object['user'] = user.json_object()
+            self.response.out.write(json.dumps(response_object))
+            return None
+          else:
+            # User email not verified (send another email)
+            _create_activation_email_for_user_id(user.key.string_id())
+            response_object['user_not_verified'] = True
+            self.response.out.write(json.dumps(response_object))
+            return None
+      self.response_object['user_not_found'] = True
+      self.response.out.write(json.dumps(response_object))
+    else:
+      self.abort(400)
 
 
 class LoginCreate(webapp2.RequestHandler):
@@ -317,10 +361,10 @@ class LoginCreate(webapp2.RequestHandler):
 
 class JsonLoginCreate(webapp2.RequestHandler):
   def get(self):
-    """ JSON GET Request. """
+    self.response.out.write('JsonLoginCreate')
 
   def post(self):
-    """ JSON POST Request. """
+    self.response.out.write('JsonLoginCreate')
 
 
 class LoginPasswordChange(webapp2.RequestHandler):
@@ -387,6 +431,14 @@ class LoginPasswordChange(webapp2.RequestHandler):
     self.redirect(webapp2.uri_for('login'))
 
 
+class JsonLoginPasswordChange(webapp2.RequestHandler):
+  def get(self):
+    self.response.out.write('JsonLoginPasswordChange')
+
+  def post(self):
+    self.response.out.write('JsonLoginPasswordChange')
+
+
 class LoginActivate(webapp2.RequestHandler):
   def get(self):
     """ Activate a user's account with for a given activation token. """
@@ -414,6 +466,14 @@ class LoginActivate(webapp2.RequestHandler):
       'ndb_users/templates/activate-error.html',
       users.template_values(template_values=temp_values)
     ))
+
+
+class JsonLoginAcivate(webapp2.RequestHandler):
+  def get(self):
+    self.response.out.write('JsonLoginAcivate')
+
+  def post(self):
+    self.response.out.write('JsonLoginAcivate')
 
 
 class LoginPasswordForgot(webapp2.RequestHandler):
@@ -475,6 +535,14 @@ class LoginPasswordForgot(webapp2.RequestHandler):
             'email': email
           })
       ))
+
+
+class JsonLoginPasswordForgot(webapp2.RequestHandler):
+  def get(self):
+    self.response.out.write('JsonLoginPasswordForgot')
+
+  def post(self):
+    self.response.out.write('JsonLoginPasswordForgot')
 
 
 class LoginPasswordReset(webapp2.RequestHandler):
@@ -561,6 +629,14 @@ class LoginPasswordReset(webapp2.RequestHandler):
     ))
 
 
+class JsonLoginPasswordReset(webapp2.RequestHandler):
+  def get(self):
+    self.response.out.write('JsonLoginPasswordReset')
+
+  def post(self):
+    self.response.out.write('JsonLoginPasswordReset')
+
+
 app = webapp2.WSGIApplication([
   RedirectRoute(
     NDB_USERS_LOGIN_URI,
@@ -568,7 +644,7 @@ app = webapp2.WSGIApplication([
     name='login',
     strict_slash=True
   ), webapp2.Route(
-    '/_login.json',
+    NDB_USERS_LOGIN_API_PATH,
     handler=JsonLogin,
     name='jsonLogin'
   ), RedirectRoute(
@@ -577,7 +653,7 @@ app = webapp2.WSGIApplication([
     name='loginCreate',
     strict_slash=True
   ), webapp2.Route(
-    '/_login/create.json',
+    NDB_USERS_LOGIN_CREATE_API_PATH,
     handler=JsonLoginCreate,
     name='jsonLoginCreate'
   ), RedirectRoute(
@@ -585,24 +661,47 @@ app = webapp2.WSGIApplication([
     handler=LoginPasswordChange,
     name='loginPasswordChange',
     strict_slash=True
+  ), webapp2.Route(
+    NDB_USERS_LOGIN_PASSWORD_CHANGE_API_PATH,
+    handler=JsonLoginPasswordChange,
+    name='jsonLoginPasswordChange'
   ), RedirectRoute(
     NDB_USERS_LOGIN_ACTIVATE_URI,
     handler=LoginActivate,
     name='loginActivate',
     strict_slash=True
+  ), webapp2.Route(
+    NDB_USERS_LOGIN_ACTIVATE_API_PATH,
+    handler=JsonLoginAcivate,
+    name='jsonLoginActivate'
   ), RedirectRoute(
     NDB_USERS_LOGIN_PASSWORD_FORGOT_URI,
     handler=LoginPasswordForgot,
     name='loginPasswordForgot',
     strict_slash=True
+  ), webapp2.Route(
+    NDB_USERS_LOGIN_PASSWORD_FORGOT_API_PATH,
+    handler=JsonLoginPasswordForgot,
+    name='jsonLoginPasswordReset'
   ), RedirectRoute(
     NDB_USERS_LOGIN_PASSWORD_RESET_URI,
     handler=LoginPasswordReset,
     name='loginPasswordReset',
     strict_slash=True
+  ), webapp2.Route(
+    NDB_USERS_LOGIN_PASSWORD_RESET_API_PATH,
+    handler=JsonLoginPasswordReset,
+    name='jsonLoginPasswordReset'
   )
 ])
 
+
+def bad_request_error_page(request, response, exception):
+  """ Used for HTTP/1.1 400 Bad request message output. """
+  logging.exception(exception)
+  response.write('Oops! The request could not be understood. [HTTP/1.1 400 Bad \
+Request]')
+  response.set_status(400)
 
 def not_found_error_page(request, response, exception):
   """ Used for HTTP/1.1 404 message output """
@@ -619,6 +718,7 @@ ternal Server Error]')
   response.set_status(500)
 
 
+app.error_handlers[400] = bad_request_error_page
 app.error_handlers[401] = users.error_handler_unauthorized
 app.error_handlers[404] = not_found_error_page
 app.error_handlers[500] = internal_server_error_page
