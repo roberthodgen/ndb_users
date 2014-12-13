@@ -248,7 +248,7 @@ class JsonLogin(webapp2.RequestHandler):
     extended = request_object.get('extended')
     response_object = dict()
     user = users.get_current_user()
-    if email and password and not:
+    if email and password and not user:
       # Get a User for `email` and `password`
       user = ndb.Key(users.User, users._user_id_for_email(email.lower())).get()
       if user:
