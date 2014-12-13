@@ -175,6 +175,18 @@ class LoginPage(webapp2.RequestHandler):
     email = self.request.POST.get('email')
     password = self.request.POST.get('password')
     extended = bool(self.request.POST.get('extended'))
+    user = users.get_current_user()
+    if user:
+      # Redirect if requested
+      if self.request.GET.get('continue'):
+        self.redirect(self.request.GET['continue'].encode('ascii'))
+      self.response.out.write(template.render(
+        'ndb_users/templates/login-success.html',
+        users.template_values(template_values={
+            'user': user
+          })
+      ))
+      return None
     if email and password:
       # Get a User for `email` and `password`
       user = ndb.Key(users.User, users._user_id_for_email(email.lower())).get()
@@ -235,7 +247,8 @@ class JsonLogin(webapp2.RequestHandler):
     password = request_object.get('password')
     extended = request_object.get('extended')
     response_object = dict()
-    if email and password:
+    user = users.get_current_user()
+    if email and password and not:
       # Get a User for `email` and `password`
       user = ndb.Key(users.User, users._user_id_for_email(email.lower())).get()
       if user:
@@ -259,8 +272,7 @@ class JsonLogin(webapp2.RequestHandler):
       response_object['login_fail'] = True
       self.response.content_type = 'application/json'
       self.response.out.write(json.dumps(response_object))
-    else:
-      self.abort(400)
+    self.abort(400) # Logged in user, no `email`, or no `password`
 
 
 class LoginCreate(webapp2.RequestHandler):
