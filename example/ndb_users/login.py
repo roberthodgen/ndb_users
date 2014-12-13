@@ -482,7 +482,7 @@ class JsonLoginPasswordChange(webapp2.RequestHandler):
 
 class LoginActivate(webapp2.RequestHandler):
   def get(self):
-    """ Activate a user's account with for a given activation token. """
+    """ Activate a user's account for a given `token`. """
     activation_token = self.request.GET.get('token')
     user = users.get_current_user()
     temp_values = {}
@@ -511,10 +511,31 @@ class LoginActivate(webapp2.RequestHandler):
 
 class JsonLoginAcivate(webapp2.RequestHandler):
   def get(self):
-    self.response.out.write('JsonLoginAcivate')
-
-  def post(self):
-    self.response.out.write('JsonLoginAcivate')
+    """ Activate a user's account for a given `token`. """
+    response_object = dict()
+    activation_token = self.request.GET.get('token')
+    user = users.get_current_user()
+    if activation_token and not user:
+      user_activation = ndb.Key(users.UserActivation, activation_token).get()
+      if user_activation:
+        if user_activation.expires > datetime.now():
+          user = user_activation.activate_user()
+          if user:
+            _login_user_for_id(user.key.string_id())
+            response_object['user'] = user.json_object()
+            self.response.out.write(json.dumps(response_object))
+            return None
+        else:
+          # Activation token expired
+          response_object['token_expired'] = True
+          self.response.out.write(json.dumps(response_object))
+          return None
+      else:
+        # Activation token invalid/not found/used
+        response_object['token_invalid'] = True
+        self.response.out.write(json.dumps(response_object))
+        return None
+    self.abort(400) # Logged in user, or no `token`
 
 
 class LoginPasswordForgot(webapp2.RequestHandler):
