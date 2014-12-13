@@ -253,7 +253,7 @@ class JsonLogin(webapp2.RequestHandler):
             self.response.content_type = 'application/json'
             self.response.out.write(json.dumps(response_object))
             return None
-      self.response_object['user_not_found'] = True
+      response_object['login_fail'] = True
       self.response.content_type = 'application/json'
       self.response.out.write(json.dumps(response_object))
     else:
@@ -462,7 +462,7 @@ class LoginPasswordChange(webapp2.RequestHandler):
         ))
         return None
       else:
-        # Wrong `current_password)
+        # Wrong `current_password`
         self.response.out.write(template.render(
           'ndb_users/templates/password-change-error.html',
           users.template_values()
@@ -473,11 +473,36 @@ class LoginPasswordChange(webapp2.RequestHandler):
 
 
 class JsonLoginPasswordChange(webapp2.RequestHandler):
-  def get(self):
-    self.response.out.write('JsonLoginPasswordChange')
-
   def post(self):
-    self.response.out.write('JsonLoginPasswordChange')
+    """ Change the logged in user's password. """
+    response_object = dict()
+    request_object = json.loads(self.request.body)
+    user = users.get_current_user()
+    current_password = request_object.get('password')
+    new_password = request_object.get('new_password')
+    if user and current_password and new_password:
+      # Check password length
+      if len(new_password) < 4:
+        response_object['password_too_short'] = True
+        self.response.content_type = 'application/json'
+        self.response.out.write(json.dumps(response_object))
+        return None
+      # Check `current_password` is indeed this user's password
+      attempt = users._password_hash(current_password, user.passwordSalt)
+      if attempt == user.passwordHash:
+        # Correct password; update to `new_password`
+        user.update_password(new_password)
+        response_object['user'] = user.json_object()
+        self.response.content_type = 'application/json'
+        self.response.out.write(json.dumps(response_object))
+        return None
+      else:
+        # Wrong `current_password`
+        response_object['password_incorrect'] = True
+        self.response.content_type = 'application/json'
+        self.response.out.write(json.dumps(response_object))
+        return None
+    self.abort(400)
 
 
 class LoginActivate(webapp2.RequestHandler):
@@ -523,16 +548,19 @@ class JsonLoginAcivate(webapp2.RequestHandler):
           if user:
             _login_user_for_id(user.key.string_id())
             response_object['user'] = user.json_object()
+            self.response.content_type = 'application/json'
             self.response.out.write(json.dumps(response_object))
             return None
         else:
           # Activation token expired
           response_object['token_expired'] = True
+          self.response.content_type = 'application/json'
           self.response.out.write(json.dumps(response_object))
           return None
       else:
         # Activation token invalid/not found/used
         response_object['token_invalid'] = True
+        self.response.content_type = 'application/json'
         self.response.out.write(json.dumps(response_object))
         return None
     self.abort(400) # Logged in user, or no `token`
