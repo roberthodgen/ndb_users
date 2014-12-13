@@ -219,7 +219,6 @@ class User(ndb.Model):
   email = ndb.StringProperty(required=True)
   passwordHash = ndb.StringProperty(required=True)
   passwordSalt = ndb.StringProperty(required=True)
-  active = ndb.BooleanProperty(default=False)
   verified = ndb.BooleanProperty(default=False)
   created = ndb.DateTimeProperty(auto_now_add=True)
   updated = ndb.DateTimeProperty(auto_now=True)
