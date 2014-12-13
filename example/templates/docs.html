@@ -34,6 +34,7 @@
 				<div id="navbar" class="navbar-collapse collapse">
 					<ul class="nav navbar-nav">
 						<li class="active"><a href="/documentation">Documentation</a></li>
+						<li><a href="/json-api">JSON API</a></li>
 						<li><a href="/protected">Protected Page</a></li>
 					</ul>
 					{% if user %}
@@ -170,27 +171,25 @@
 				<dt><h3><code>passwordHash</code></h3></dt>
 				<dd>
 					<p>The user's password hashed with <code>passwordSalt</code>.</p>
-					<p>...</p>
 				</dd>
 				<dt><h3><code>passwordSalt</code></h3></dt>
 				<dd>
 					<p>The user's password salt.</p>
-					<p>...</p>
+					<p>The length may be changed in the global <code>NDB_USERS_SALT_LENGTH</code> in <code>config.py</code>.</p>
+					<p>The user's salt will be updated everytime the user's password is changed. See <code>Users.update_password()</code>.</p>
 				</dd>
-				<dt><h3><code>active</code></h3></dt>
+				<dt><h3><code>verified</code></h3></dt>
 				<dd>
-					<p>Boolean indicating whether this user is active.</p>
-					<p>...</p>
+					<p>Boolean indicating whether this user's email address has been verified.</p>
 				</dd>
 				<dt><h3><code>created</code></h3></dt>
 				<dd>
 					<p>The <code>datetime</code> this user was created.</p>
-					<p>...</p>
 				</dd>
 				<dt><h3><code>updated</code></h3></dt>
 				<dd>
 					<p>The <code>datetime</code> this user was last updated.</p>
-					<p>...</p>
+					<p>Does not take into account creation of account activation tokens or password recovery tokens.</p>
 				</dd>
 			</dl>
 

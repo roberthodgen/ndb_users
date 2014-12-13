@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>ndb_users - a simply Python user log in system</title>
+
+		<!-- Bootstrap -->
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
+
+		<!-- Optional theme -->
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap-theme.min.css">
+
+		<!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+		<!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+		<!--[if lt IE 9]>
+		  <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+		  <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+		<![endif]-->
+		</head>
+	<body style="padding-top:50px; padding-bottom:20px;">
+		
+		<nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+			<div class="container">
+				<div class="navbar-header">
+					<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+						<span class="icon-bar"></span>
+						<span class="icon-bar"></span>
+						<span class="icon-bar"></span>
+					</button>
+					<a class="navbar-brand" href="/">ndb_users</a>
+				</div>
+				<div id="navbar" class="navbar-collapse collapse">
+					<ul class="nav navbar-nav">
+						<li><a href="/documentation">Documentation</a></li>
+						<li class="active"><a href="/json-api">JSON API</a></li>
+						<li><a href="/protected">Protected Page</a></li>
+					</ul>
+					{% if user %}
+					<a class="btn btn-danger navbar-btn navbar-right" href="{{ logout_url }}">Log out</a>
+					<p class="navbar-text navbar-right" style="margin-right:15px;">Welcome back, {{ user.email }}.</p>
+					{% else %}
+					<form class="navbar-form navbar-right" role="form" method="post" action="{{ login_url }}">
+						<div class="form-group">
+							<input type="text" name="email" placeholder="Email address..." class="form-control">
+						</div>
+						<div class="form-group">
+							<input type="password" name="password" placeholder="Password..." class="form-control">
+						</div>
+						<button type="submit" class="btn btn-success">Log in</button>
+					</form>
+					{% endif %}
+				</div>
+				</div>
+			</div>
+		</nav>
+
+		<div class="container">
+
+			<h1><code>POST _login/create.json</code></h1>
+
+			<hr>
+
+			<h2>Overview</h2>
+
+			<p>Creates a new user.</p>
+
+			<h2>GET parameters</h2>
+
+			<p>None.</p>
+
+			<h2>JSON request object parameters</h2>
+
+			<dl>
+				<dt><h3><code>email</code></h3></dt>
+				<dd>
+					<p>String, required.</p>
+					<p>The new user's email address.</p>
+				</dd>
+
+				<dt><h3><code>password</code></h3></dt>
+				<dd>
+					<p>String, required.</p>
+					<p>The new user's password.</p>
+					<p>Note: the <code>password</code> should be verified by the application (whether JavaScript or other) to match. A good practice is to always show two password fields and verify they match before sending this request.</p>
+				</dd>
+			</dl>
+
+			<h2>Error responses</h2>
+
+			<h3>HTTP/1.1 200 OK</h3>
+
+			<p>Will return a JSON object with one of the following keys:</p>
+
+			<dl>
+				<dt><h4><code>password_too_short</code></h4></dt>
+				<dd>
+					<p>Will always equal <code>True</code>.</p>
+					<p>The <code>password</code> in the JSON request object is too short.</p>
+				</dd>
+
+				<dt><h4><code>email_invalid</code></h4></dt>
+				<dd>
+					<p>Will always equal <code>True</code>.</p>
+					<p>The email address does not pass validation, this does not mean it is in use or invalid.</p>
+				</dd>
+
+				<dt><h4><code>email_in_use</code></h4></dt>
+				<dd>
+					<p>Will always equal <code>True</code>.</p>
+					<p>The email address is already in use by another user.</p>
+				</dd>
+			</dl>
+
+			<h3>HTTP/1.1 400 Bad Request</h3>
+
+			<p>Indicates a required parameter is missing or a user is currently logged in.</p>
+
+			<p>Note: an HTTP/1.1 400 Bad Request will be returned regardless of the supplied information if a user is logged in.</p>
+
+			<h2>Success responses</h2>
+
+			<p>Will return a JSON object with an object set to the <code>user</code> key.</p>
+
+			<h2>Example response objects</h2>
+
+			<h3>User created requiring verification</h3>
+			<p>E.g. <code>/_login/create.json</code> completed successfully.</p>
+			<h4>Request</h4>
+			<pre><code>{
+	"email": "new@example.com",
+	"password": "password!"	
+}</code></pre>
+			<h4>Response</h4>
+			<pre><code>{
+	"user": {
+		"email": "new@example.com"
+	},
+	"email_verification": True
+}</code></pre>
+			<p>Because the <code>email_verification</code> key is present, the user must verify their email address via account activation token before logging in.</p>
+
+			<h2>Notes</h2>
+
+			<p>The <code>email_verification</code> key will accopany a successful response if the user must verify their email address before logging in. When this key is present, the user has not logged in.</p>
+
+			<p>The <code>user</code> key will only be supplied when a request has completed successfully and the user's account has been created.</p>
+
+			<style type="text/css">
+
+			dt {
+				margin-top: 15px;
+			}
+
+			dd {
+				margin-bottom: 15px;
+			}
+
+			</style>
+
+			<hr>
+
+			<footer>
+				{% if user %}
+				<p><a href="{{ logout_url }}">Log out</a> or <a href="{{ password_change_url }}">change your password</a>.</p>
+				{% else %}
+				<p><a href="{{ login_url }}">Log in</a> to your account. <a href="{{ password_forgot_url }}">Forgot password?</a></p>
+				{% endif %}
+				<p>Copyright &copy; 2014 <a href="http://roberthodgen.com/">Robert Hodgen</a>. Available under the MIT license. <a href="https://github.com/roberthodgen/ndb_users">View on GitHub</a>.</p>
+			</footer>
+
+		</div>
+		
+		<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+		<!-- Include all compiled plugins (below), or include individual files as needed -->
+		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
+	</body>
+</html>
