@@ -640,7 +640,7 @@ class JsonLoginPasswordForgot(webapp2.RequestHandler):
       if user:
         if users.user_verified(user):
           _create_recovery_email_for_user_id(user.key.string_id())
-          response_object['user'] = {}
+          response_object['user'] = dict()
           self.response.content_type = 'application/json'
           self.response.out.write(json.dumps(response_object))
           return None
@@ -656,7 +656,8 @@ class JsonLoginPasswordForgot(webapp2.RequestHandler):
         self.response.content_type = 'application/json'
         self.response.out.write(json.dumps(response_object))
         return None
-    self.abort(400)
+    self.abort(400) # Logged in user, or no `email`
+
 
 class LoginPasswordReset(webapp2.RequestHandler):
   def get(self):
@@ -744,10 +745,71 @@ class LoginPasswordReset(webapp2.RequestHandler):
 
 class JsonLoginPasswordReset(webapp2.RequestHandler):
   def get(self):
-    self.response.out.write('JsonLoginPasswordReset')
+    """ Inform the application if the `token` is valid/invalid. """
+    response_object = dict()
+    token = self.request.GET.get('token')
+    user = users.get_current_user()
+    if token and not user:
+      user_recovery = ndb.Key(users.UserRecovery, token).get()
+      if user_recovery:
+        if user_recovery.expires > datetime.now():
+          # Token OK
+          response_object['user'] = dict()
+          self.response.content_type = 'application/json'
+          self.response.out.write(json.dumps(response_object))
+          return None
+        else:
+          # Expired token
+          response_object['token_expired'] = True
+          self.response.content_type = 'application/json'
+          self.response.out.write(json.dumps(response_object))
+          return None
+      else:
+        # Invalid token
+        response_object['token_invalid'] = True
+        self.response.content_type = 'application/json'
+        self.response.out.write(json.dumps(response_object))
+        return None
+    self.abort(400) # Logged in user, or no `token`
 
   def post(self):
-    self.response.out.write('JsonLoginPasswordReset')
+    """ Reset the owner of `token`'s password. """
+    response_object = dict()
+    request_object = json.loads(self.request.body)
+    new_password = request_object.get('new_password')
+    token = self.request.GET.get('token')
+    user = users.get_current_user()
+    if token and new_password and not user:
+      # Check password length
+      if len(new_password) < 4:
+        response_object['password_too_short'] = True
+        self.response.content_type = 'application/json'
+        self.response.out.write(json.dumps(response_object))
+        return None
+      # Recover the user
+      user_recovery = ndb.Key(users.UserRecovery, token).get()
+      if user_recovery:
+        if user_recovery.expires > datetime.now():
+          user = user_recovery.reset_password(new_password)
+          if user:
+            _login_user_for_id(user.key.string_id())
+            response_object['user'] = user.json_object()
+            self.response.content_type = 'application/json'
+            self.response.out.write(json.dumps(response_object))
+            return None
+        else:
+          # Expired token
+          response_object['token_expired'] = True
+          self.response.content_type = 'application/json'
+          self.response.out.write(json.dumps(response_object))
+          return None
+      else:
+        # Invalid token
+        response_object['token_invalid'] = True
+        self.response.content_type = 'application/json'
+        self.response.out.write(json.dumps(response_object))
+        return None
+    self.abort(400) # Logged in user, or no `token`, or no `new_password`
 
 
 app = webapp2.WSGIApplication([
