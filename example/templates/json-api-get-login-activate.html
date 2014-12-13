@@ -58,9 +58,88 @@
 
 		<div class="container">
 
-			<h1>JSON API</h1>
+			<h1><code>GET _login/activate.json</code></h1>
 
 			<hr>
+
+			<h2>Overview</h2>
+
+			<p>Activates a user's account (verify email address).</p>
+
+			<h2>GET parameters</h2>
+
+			<dl>
+				<dt><h3><code>token</code></h3></dt>
+				<dd>
+					<p>String, required.</p>
+					<p>The account activation token to use.</p>
+				</dd>
+			</dl>
+
+			<h2>Responses</h2>
+
+			<h3>HTTP/1.1 400 Bad Request</h3>
+
+			<p>An <code>HTTP/1.1 400 Bad Request</code> will be returned when there is either a logged in user or the <code>token</code> is missing.</p>
+
+			<h3>HTTP/1.1 200 OK</h3>
+
+			<p>The following keys may be found in the JSON response object:</p>
+
+			<dl>
+				<dt><h4><code>user</code></h4></dt>
+				<dd>
+					<p>This is the typical, successful response.</p>
+					<p>The <code>user</code> will be an object representing the current user.</p>
+					<p>Note: the user will be automatically logged in.</p>
+				</dd>
+
+				<dt><h4><code>token_expired</code></h4></dt>
+				<dd>
+					<p>The supplied <code>token</code> has expired. The user should request another account activation email.</p>
+				</dd>
+
+				<dt><h4><code>token_invalid</code></h4></dt>
+				<dd>
+					<p>The supplied <code>token</code> was not found.</p>
+					<p>The <code>token</code> could have already been used or is of an invalid format.</p>
+				</dd>
+			</dl>
+
+			<h2>Example response objects</h2>
+
+			<h3>Logged in response object</h3>
+			<p>E.g. <code>/_login/activate.json</code> while a user is logged in or <code>token</code> is missing:</p>
+			<pre>HTTP/1.1 400 Bad Request</pre>
+
+			<h3>Success</h3>
+			<p>E.g. <code>/_login/activate.json?token=D40753b8f6ed9CaBEFAc</code> while a user is not logged in.</p>
+			<pre><code>{
+	"user": {
+		"email": "someone@example.com"
+	}
+}</code></pre>
+			<p>The empty <code>user</code> object signifies a successful request.</p>
+
+			<h3>Expired token</h3>
+			<p>E.g. <code>/_login/activate.json?token=89d1Fa43c7fD0C6bB2A5</code> while a user is not logged in with an expired token.</p>
+			<pre><code>{
+	"token_expired": True
+}</code></pre>
+
+			<h3>Invalid token</h3>
+			<p>E.g. <code>/_login/activate.json?token=a3Fc0AB276bEf154D8Ce</code> while a user is nog logged in with a token that has already been used.</p>
+			<pre><code>{
+	"token_invalid": True
+}</code></pre>
+			<p>Note: <code>token_invalid</code> will be returned even if the <code>token</code> is malformed.</p>
+
+
+			<h2>Notes</h2>
+
+			<p>Generally speaking, the existance of a <code>user</code> object in a response object signifies a successful request.</p>
+
+			<p>When this request completes successfully, the user will be logged in automatically.</p>
 
 			<style type="text/css">
 
@@ -73,35 +152,6 @@
 			}
 
 			</style>
-
-			<dl>
-				
-				<dt><a href="/json-api/get/login"><code>GET _login.json</code></a></dt>
-				<dd>Determines if a user is logged in, fetches information about the logged in user, or logs out the current user.</dd>
-
-				<dt><a href="/json-api/post/login"><code>POST _login.json</code></a></dt>
-				<dd>Logs in a user.</dd>
-
-				<dt><a href="/json-api/post/login/create"><code>POST _login/create.json</code></a></dt>
-				<dd>Creates a new user.</dd>
-
-				<dt><a href="/json-api/get/login/activate"><code>GET _login/activate.json</code></a></dt>
-				<dd>Activates a user's account (verify email address).</dd>
-
-				<dt><a href="/json-api/post/login/password/change"><code>POST _login/password/change.json</code></a></dt>
-				<dd>Changes the logged in user's password.</dd>
-
-				<dt><a href="/json-api/post/login/password/forgot"><code>POST _login/password/forgot.json</code></a></dt>
-				<dd>Requests a password recovery token via email.</dd>
-
-				<dt><a href="/json-api/get/login/password/reset"><code>GET _login/password/reset.json</code></a></dt>
-				<dd>Verifies a password recovery token is usable.</dd>
-
-				<dt><a href="/json-api/post/login/password/reset"><code>POST _login/password/reset.json</code></a></dt>
-				<dd>Resets a user's password using a password recovery token.</dd>
-
-			</dl>
-
 
 			<hr>
 

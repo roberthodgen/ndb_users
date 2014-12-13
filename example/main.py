@@ -152,6 +152,91 @@ class JsonApiPostLoginCreate(webapp2.RequestHandler):
       }))
 
 
+class JsonApiGetLoginActivate(webapp2.RequestHandler):
+  def get(self):
+    user = users.get_current_user()
+    self.response.out.write(template.render(
+      'templates/json-api-get-login-activate.html', {
+        'user': user,
+        'login_url': users.create_login_url(
+          webapp2.uri_for('documentation')),
+        'logout_url': users.create_logout_url(
+          webapp2.uri_for('documentation')),
+        'password_forgot_url': users.create_password_forgot_url(
+          webapp2.uri_for('documentation')),
+        'password_change_url': users.create_password_change_url(
+          webapp2.uri_for('documentation'))
+      }))
+
+
+class JsonApiPostLoginPasswordChange(webapp2.RequestHandler):
+  def get(self):
+    user = users.get_current_user()
+    self.response.out.write(template.render(
+      'templates/json-api-post-login-password-change.html', {
+        'user': user,
+        'login_url': users.create_login_url(
+          webapp2.uri_for('documentation')),
+        'logout_url': users.create_logout_url(
+          webapp2.uri_for('documentation')),
+        'password_forgot_url': users.create_password_forgot_url(
+          webapp2.uri_for('documentation')),
+        'password_change_url': users.create_password_change_url(
+          webapp2.uri_for('documentation'))
+      }))
+
+
+class JsonApiPostLoginPasswordForgot(webapp2.RequestHandler):
+  def get(self):
+    user = users.get_current_user()
+    self.response.out.write(template.render(
+      'templates/json-api-post-login-password-forgot.html', {
+        'user': user,
+        'login_url': users.create_login_url(
+          webapp2.uri_for('documentation')),
+        'logout_url': users.create_logout_url(
+          webapp2.uri_for('documentation')),
+        'password_forgot_url': users.create_password_forgot_url(
+          webapp2.uri_for('documentation')),
+        'password_change_url': users.create_password_change_url(
+          webapp2.uri_for('documentation'))
+      }))
+
+
+class JsonApiGetLoginPasswordReset(webapp2.RequestHandler):
+  def get(self):
+    user = users.get_current_user()
+    self.response.out.write(template.render(
+      'templates/json-api-get-login-password-reset.html', {
+        'user': user,
+        'login_url': users.create_login_url(
+          webapp2.uri_for('documentation')),
+        'logout_url': users.create_logout_url(
+          webapp2.uri_for('documentation')),
+        'password_forgot_url': users.create_password_forgot_url(
+          webapp2.uri_for('documentation')),
+        'password_change_url': users.create_password_change_url(
+          webapp2.uri_for('documentation'))
+      }))
+
+
+class JsonApiPostLoginPasswordReset(webapp2.RequestHandler):
+  def get(self):
+    user = users.get_current_user()
+    self.response.out.write(template.render(
+      'templates/json-api-post-login-password-reset.html', {
+        'user': user,
+        'login_url': users.create_login_url(
+          webapp2.uri_for('documentation')),
+        'logout_url': users.create_logout_url(
+          webapp2.uri_for('documentation')),
+        'password_forgot_url': users.create_password_forgot_url(
+          webapp2.uri_for('documentation')),
+        'password_change_url': users.create_password_change_url(
+          webapp2.uri_for('documentation'))
+      }))
+
+
 app = webapp2.WSGIApplication([
     webapp2.Route(
       '/',
@@ -181,6 +266,26 @@ app = webapp2.WSGIApplication([
       '/json-api/post/login/create',
       handler=JsonApiPostLoginCreate,
       name='jsonApiPostLoginCreate'
+    ), webapp2.Route(
+      '/json-api/get/login/activate',
+      handler=JsonApiGetLoginActivate,
+      name='jsonApiGetLoginActivate'
+    ), webapp2.Route(
+      '/json-api/post/login/password/change',
+      handler=JsonApiPostLoginPasswordChange,
+      name='jsonApiPostLoginPasswordChange'
+    ), webapp2.Route(
+      '/json-api/post/login/password/forgot',
+      handler=JsonApiPostLoginPasswordForgot,
+      name='jsonApiPostLoginPasswordForgot'
+    ), webapp2.Route(
+      '/json-api/get/login/password/reset',
+      handler=JsonApiGetLoginPasswordReset,
+      name='jsonApiPostLoginPasswordReset'
+    ), webapp2.Route(
+      '/json-api/post/login/password/reset',
+      handler=JsonApiPostLoginPasswordReset,
+      name='jsonApiPostLoginPasswordReset'
     )
   ])
 
