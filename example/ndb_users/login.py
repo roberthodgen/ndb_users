@@ -609,6 +609,7 @@ class LoginPasswordForgot(webapp2.RequestHandler):
               })
           ))
       else:
+        # User not found
         self.response.out.write(template.render(
           'ndb_users/templates/password-forgot-error.html',
           users.template_values(template_values={
@@ -628,12 +629,34 @@ class LoginPasswordForgot(webapp2.RequestHandler):
 
 
 class JsonLoginPasswordForgot(webapp2.RequestHandler):
-  def get(self):
-    self.response.out.write('JsonLoginPasswordForgot')
-
   def post(self):
-    self.response.out.write('JsonLoginPasswordForgot')
-
+    """ Send a recovery email, if `email` is found. """
+    response_object = dict()
+    request_object = json.loads(self.request.body)
+    email = request_object.get('email')
+    user = users.get_current_user()
+    if email and not user:
+      user = users.User.user_for_email(email)
+      if user:
+        if users.user_verified(user):
+          _create_recovery_email_for_user_id(user.key.string_id())
+          response_object['user'] = {}
+          self.response.content_type = 'application/json'
+          self.response.out.write(json.dumps(response_object))
+          return None
+        else:
+          # User not verified
+          response_object['user_not_verified'] = True
+          self.response.content_type = 'application/json'
+          self.response.out.write(json.dumps(response_object))
+          return None
+      else:
+        # User not found
+        response_object['email_not_found'] = True
+        self.response.content_type = 'application/json'
+        self.response.out.write(json.dumps(response_object))
+        return None
+    self.abort(400)
 
 class LoginPasswordReset(webapp2.RequestHandler):
   def get(self):
