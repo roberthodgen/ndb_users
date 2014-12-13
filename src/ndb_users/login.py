@@ -405,7 +405,7 @@ class JsonLoginCreate(webapp2.RequestHandler):
           self.response.content_type = 'application/json'
           self.response.out.write(json.dumps(response_object))
           return None
-    self.abort(400) # no `email` and/or `password`
+    self.abort(400) # Logged in user, no `email`, or no `password`
 
 
 class LoginPasswordChange(webapp2.RequestHandler):
