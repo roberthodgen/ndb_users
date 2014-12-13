@@ -175,6 +175,18 @@ class LoginPage(webapp2.RequestHandler):
     email = self.request.POST.get('email')
     password = self.request.POST.get('password')
     extended = bool(self.request.POST.get('extended'))
+    user = users.get_current_user()
+    if user:
+      # Redirect if requested
+      if self.request.GET.get('continue'):
+        self.redirect(self.request.GET['continue'].encode('ascii'))
+      self.response.out.write(template.render(
+        'ndb_users/templates/login-success.html',
+        users.template_values(template_values={
+            'user': user
+          })
+      ))
+      return None
     if email and password:
       # Get a User for `email` and `password`
       user = ndb.Key(users.User, users._user_id_for_email(email.lower())).get()
