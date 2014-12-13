@@ -259,6 +259,13 @@ class User(ndb.Model):
     """ Return a User object or None for `email`. """
     return ndb.Key(User, _user_id_for_email(email)).get()
 
+  def json_object(self):
+    """ Return a Dictionary representation of this user. Will be the `user`
+    object returned by all JSON API requests. """
+    return {
+      'email': self.email
+    }
+
 
 class UserSession(ndb.Model):
   """ UserSession class stores a User's session IDs (`user_session_id` cookie)
@@ -281,7 +288,7 @@ class UserSession(ndb.Model):
       NDB_USERS_SESSION_ID_LENGTH))
 
   @classmethod
-  def create_user_session(cls, user_id, extended=False):
+  def create_user_session(cls, user_id, extended=False, **kwargs):
     """ Creates a new UserSession in the ndb database for a given `user_id`. """
     if extended:
       expires = datetime.now() + timedelta(days=NDB_USERS_SESSION_EXTENDED_DAYS)

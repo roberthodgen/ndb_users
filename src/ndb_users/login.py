@@ -71,6 +71,14 @@ def _login_user_for_id(user_id, extended=False):
     **options
   )
 
+def _logout_user():
+  """ Delete the cookie and terminate the UserSession. """
+  request = webapp2.get_request()
+  cookie_value = request.cookies.get(NDB_USERS_COOKIE_KEY)
+  if cookie_value:
+    ndb.Key(users.UserSession, cookie_value).delete()
+    request.response.delete_cookie(NDB_USERS_COOKIE_KEY)
+
 def _use_secure_cookies():
   """ Return True if this is the Google App Engine production environment and
   `NDB_USERS_COOKIE_SECURE` is True. Otherwise return False. """
@@ -138,18 +146,15 @@ class LoginPage(webapp2.RequestHandler):
   def get(self):
     user = users.get_current_user()
     if user:
-      if 'action' in self.request.GET:
-        if self.request.GET['action'] == 'logout':
-          cookie_value = self.request.cookies.get(NDB_USERS_COOKIE_KEY)
-          if cookie_value:
-            ndb.Key(users.UserSession, cookie_value).delete()
-            self.response.delete_cookie(NDB_USERS_COOKIE_KEY)
-          if self.request.GET.get('continue'):
-            self.redirect(self.request.GET.get('continue').encode('ascii'))
-          self.response.out.write(template.render(
-            'ndb_users/templates/logout-success.html',
-            users.template_values()
-          ))
+      action = self.request.GET.get('action')
+      if action == 'logout':
+        _logout_user()
+        if self.request.GET.get('continue'):
+          self.redirect(self.request.GET.get('continue').encode('ascii'))
+        self.response.out.write(template.render(
+          'ndb_users/templates/logout-success.html',
+          users.template_values()
+        ))
       else:
         if self.request.GET.get('continue'):
           self.redirect(self.request.GET.get('continue').encode('ascii'))
@@ -207,10 +212,52 @@ class LoginPage(webapp2.RequestHandler):
 
 class JsonLogin(webapp2.RequestHandler):
   def get(self):
-    """ JSON GET Request. """
+    """ Return a `user` if logged in; empty object if no user; handle logging
+    out users via JSON request. """
+    response_object = dict()
+    user = users.get_current_user()
+    if user:
+      response_object['user'] = user.json_object()
+      action = self.request.GET.get('action')
+      if action == 'logout':
+        _logout_user()
+        response_object['user'] = dict()
+    self.response.content_type = 'application/json'
+    self.response.out.write(json.dumps(response_object))
 
   def post(self):
-    """ JSON POST Request. """
+    """ Log in a user via supplied JSON `email` and `password` values. """
+    request_object = json.loads(self.request.body)
+    email = request_object.get('email')
+    password = request_object.get('password')
+    extended = request_object.get('extended')
+    response_object = dict()
+    if email and password:
+      # Get a User for `email` and `password`
+      user = ndb.Key(users.User, users._user_id_for_email(email.lower())).get()
+      if user:
+        # User found... check Password
+        attempt = users._password_hash(password, user.passwordSalt)
+        if attempt == user.passwordHash:
+          if users.user_verified(user):
+            # Success
+            _login_user_for_id(user.key.string_id(), extended=extended)
+            response_object['user'] = user.json_object()
+            self.response.content_type = 'application/json'
+            self.response.out.write(json.dumps(response_object))
+            return None
+          else:
+            # User email not verified (send another email)
+            _create_activation_email_for_user_id(user.key.string_id())
+            response_object['user_not_verified'] = True
+            self.response.content_type = 'application/json'
+            self.response.out.write(json.dumps(response_object))
+            return None
+      response_object['login_fail'] = True
+      self.response.content_type = 'application/json'
+      self.response.out.write(json.dumps(response_object))
+    else:
+      self.abort(400)
 
 
 class LoginCreate(webapp2.RequestHandler):
@@ -316,11 +363,49 @@ class LoginCreate(webapp2.RequestHandler):
 
 
 class JsonLoginCreate(webapp2.RequestHandler):
-  def get(self):
-    """ JSON GET Request. """
-
   def post(self):
-    """ JSON POST Request. """
+    """ Create a new user for the supplied `email` and `password`. """
+    response_object = dict()
+    user = users.get_current_user()
+    request_object = json.loads(self.request.body)
+    if not user:
+      email = request_object.get('email')
+      password = request_object.get('password')
+      if email and password:
+        # Check password length
+        if len(password) < 4:
+          response['password_too_short'] = True
+          self.response.content_type = 'application/json'
+          self.response.out.write(json.dumps(response_object))
+          return None
+        # Check `email`
+        if not mail.is_email_valid(email):
+          response_object['email_invalid'] = True
+          self.response.content_type = 'application/json'
+          self.response.out.write(json.dumps(response_object))
+          return None
+        # Try finding a User with this email...
+        user_found = users.User.query(users.User.email==email).count(1)
+        if user_found < 1:
+          # Create a User
+          new_user_key = users.User.create_user(email, password)
+          response_object['user'] = new_user_key.get().json_object()
+          if NDB_USERS_ENFORCE_EMAIL_VERIFICATION:
+            _create_activation_email_for_user_id(new_user_key.string_id())
+            response_object['email_verification'] = True
+          else:
+            # Log this user in!
+            _login_user_for_id(new_user_key.string_id())
+          self.response.content_type = 'application/json'
+          self.response.out.write(json.dumps(response_object))
+          return None
+        else:
+          # Already exists
+          response_object['email_in_use'] = True
+          self.response.content_type = 'application/json'
+          self.response.out.write(json.dumps(response_object))
+          return None
+    self.abort(400) # Logged in user, no `email`, or no `password`
 
 
 class LoginPasswordChange(webapp2.RequestHandler):
@@ -377,7 +462,7 @@ class LoginPasswordChange(webapp2.RequestHandler):
         ))
         return None
       else:
-        # Wrong `current_password)
+        # Wrong `current_password`
         self.response.out.write(template.render(
           'ndb_users/templates/password-change-error.html',
           users.template_values()
@@ -387,9 +472,42 @@ class LoginPasswordChange(webapp2.RequestHandler):
     self.redirect(webapp2.uri_for('login'))
 
 
+class JsonLoginPasswordChange(webapp2.RequestHandler):
+  def post(self):
+    """ Change the logged in user's password. """
+    response_object = dict()
+    request_object = json.loads(self.request.body)
+    user = users.get_current_user()
+    current_password = request_object.get('password')
+    new_password = request_object.get('new_password')
+    if user and current_password and new_password:
+      # Check password length
+      if len(new_password) < 4:
+        response_object['password_too_short'] = True
+        self.response.content_type = 'application/json'
+        self.response.out.write(json.dumps(response_object))
+        return None
+      # Check `current_password` is indeed this user's password
+      attempt = users._password_hash(current_password, user.passwordSalt)
+      if attempt == user.passwordHash:
+        # Correct password; update to `new_password`
+        user.update_password(new_password)
+        response_object['user'] = user.json_object()
+        self.response.content_type = 'application/json'
+        self.response.out.write(json.dumps(response_object))
+        return None
+      else:
+        # Wrong `current_password`
+        response_object['password_incorrect'] = True
+        self.response.content_type = 'application/json'
+        self.response.out.write(json.dumps(response_object))
+        return None
+    self.abort(400)
+
+
 class LoginActivate(webapp2.RequestHandler):
   def get(self):
-    """ Activate a user's account with for a given activation token. """
+    """ Activate a user's account for a given `token`. """
     activation_token = self.request.GET.get('token')
     user = users.get_current_user()
     temp_values = {}
@@ -414,6 +532,38 @@ class LoginActivate(webapp2.RequestHandler):
       'ndb_users/templates/activate-error.html',
       users.template_values(template_values=temp_values)
     ))
+
+
+class JsonLoginAcivate(webapp2.RequestHandler):
+  def get(self):
+    """ Activate a user's account for a given `token`. """
+    response_object = dict()
+    activation_token = self.request.GET.get('token')
+    user = users.get_current_user()
+    if activation_token and not user:
+      user_activation = ndb.Key(users.UserActivation, activation_token).get()
+      if user_activation:
+        if user_activation.expires > datetime.now():
+          user = user_activation.activate_user()
+          if user:
+            _login_user_for_id(user.key.string_id())
+            response_object['user'] = user.json_object()
+            self.response.content_type = 'application/json'
+            self.response.out.write(json.dumps(response_object))
+            return None
+        else:
+          # Activation token expired
+          response_object['token_expired'] = True
+          self.response.content_type = 'application/json'
+          self.response.out.write(json.dumps(response_object))
+          return None
+      else:
+        # Activation token invalid/not found/used
+        response_object['token_invalid'] = True
+        self.response.content_type = 'application/json'
+        self.response.out.write(json.dumps(response_object))
+        return None
+    self.abort(400) # Logged in user, or no `token`
 
 
 class LoginPasswordForgot(webapp2.RequestHandler):
@@ -459,6 +609,7 @@ class LoginPasswordForgot(webapp2.RequestHandler):
               })
           ))
       else:
+        # User not found
         self.response.out.write(template.render(
           'ndb_users/templates/password-forgot-error.html',
           users.template_values(template_values={
@@ -475,6 +626,37 @@ class LoginPasswordForgot(webapp2.RequestHandler):
             'email': email
           })
       ))
+
+
+class JsonLoginPasswordForgot(webapp2.RequestHandler):
+  def post(self):
+    """ Send a recovery email, if `email` is found. """
+    response_object = dict()
+    request_object = json.loads(self.request.body)
+    email = request_object.get('email')
+    user = users.get_current_user()
+    if email and not user:
+      user = users.User.user_for_email(email)
+      if user:
+        if users.user_verified(user):
+          _create_recovery_email_for_user_id(user.key.string_id())
+          response_object['user'] = dict()
+          self.response.content_type = 'application/json'
+          self.response.out.write(json.dumps(response_object))
+          return None
+        else:
+          # User not verified
+          response_object['user_not_verified'] = True
+          self.response.content_type = 'application/json'
+          self.response.out.write(json.dumps(response_object))
+          return None
+      else:
+        # User not found
+        response_object['email_not_found'] = True
+        self.response.content_type = 'application/json'
+        self.response.out.write(json.dumps(response_object))
+        return None
+    self.abort(400) # Logged in user, or no `email`
 
 
 class LoginPasswordReset(webapp2.RequestHandler):
@@ -561,6 +743,75 @@ class LoginPasswordReset(webapp2.RequestHandler):
     ))
 
 
+class JsonLoginPasswordReset(webapp2.RequestHandler):
+  def get(self):
+    """ Inform the application if the `token` is valid/invalid. """
+    response_object = dict()
+    token = self.request.GET.get('token')
+    user = users.get_current_user()
+    if token and not user:
+      user_recovery = ndb.Key(users.UserRecovery, token).get()
+      if user_recovery:
+        if user_recovery.expires > datetime.now():
+          # Token OK
+          response_object['user'] = dict()
+          self.response.content_type = 'application/json'
+          self.response.out.write(json.dumps(response_object))
+          return None
+        else:
+          # Expired token
+          response_object['token_expired'] = True
+          self.response.content_type = 'application/json'
+          self.response.out.write(json.dumps(response_object))
+          return None
+      else:
+        # Invalid token
+        response_object['token_invalid'] = True
+        self.response.content_type = 'application/json'
+        self.response.out.write(json.dumps(response_object))
+        return None
+    self.abort(400) # Logged in user, or no `token`
+
+  def post(self):
+    """ Reset the owner of `token`'s password. """
+    response_object = dict()
+    request_object = json.loads(self.request.body)
+    new_password = request_object.get('new_password')
+    token = self.request.GET.get('token')
+    user = users.get_current_user()
+    if token and new_password and not user:
+      # Check password length
+      if len(new_password) < 4:
+        response_object['password_too_short'] = True
+        self.response.content_type = 'application/json'
+        self.response.out.write(json.dumps(response_object))
+        return None
+      # Recover the user
+      user_recovery = ndb.Key(users.UserRecovery, token).get()
+      if user_recovery:
+        if user_recovery.expires > datetime.now():
+          user = user_recovery.reset_password(new_password)
+          if user:
+            _login_user_for_id(user.key.string_id())
+            response_object['user'] = user.json_object()
+            self.response.content_type = 'application/json'
+            self.response.out.write(json.dumps(response_object))
+            return None
+        else:
+          # Expired token
+          response_object['token_expired'] = True
+          self.response.content_type = 'application/json'
+          self.response.out.write(json.dumps(response_object))
+          return None
+      else:
+        # Invalid token
+        response_object['token_invalid'] = True
+        self.response.content_type = 'application/json'
+        self.response.out.write(json.dumps(response_object))
+        return None
+    self.abort(400) # Logged in user, or no `token`, or no `new_password`
+
+
 app = webapp2.WSGIApplication([
   RedirectRoute(
     NDB_USERS_LOGIN_URI,
@@ -568,7 +819,7 @@ app = webapp2.WSGIApplication([
     name='login',
     strict_slash=True
   ), webapp2.Route(
-    '/_login.json',
+    NDB_USERS_LOGIN_API_PATH,
     handler=JsonLogin,
     name='jsonLogin'
   ), RedirectRoute(
@@ -577,7 +828,7 @@ app = webapp2.WSGIApplication([
     name='loginCreate',
     strict_slash=True
   ), webapp2.Route(
-    '/_login/create.json',
+    NDB_USERS_LOGIN_CREATE_API_PATH,
     handler=JsonLoginCreate,
     name='jsonLoginCreate'
   ), RedirectRoute(
@@ -585,24 +836,47 @@ app = webapp2.WSGIApplication([
     handler=LoginPasswordChange,
     name='loginPasswordChange',
     strict_slash=True
+  ), webapp2.Route(
+    NDB_USERS_LOGIN_PASSWORD_CHANGE_API_PATH,
+    handler=JsonLoginPasswordChange,
+    name='jsonLoginPasswordChange'
   ), RedirectRoute(
     NDB_USERS_LOGIN_ACTIVATE_URI,
     handler=LoginActivate,
     name='loginActivate',
     strict_slash=True
+  ), webapp2.Route(
+    NDB_USERS_LOGIN_ACTIVATE_API_PATH,
+    handler=JsonLoginAcivate,
+    name='jsonLoginActivate'
   ), RedirectRoute(
     NDB_USERS_LOGIN_PASSWORD_FORGOT_URI,
     handler=LoginPasswordForgot,
     name='loginPasswordForgot',
     strict_slash=True
+  ), webapp2.Route(
+    NDB_USERS_LOGIN_PASSWORD_FORGOT_API_PATH,
+    handler=JsonLoginPasswordForgot,
+    name='jsonLoginPasswordReset'
   ), RedirectRoute(
     NDB_USERS_LOGIN_PASSWORD_RESET_URI,
     handler=LoginPasswordReset,
     name='loginPasswordReset',
     strict_slash=True
+  ), webapp2.Route(
+    NDB_USERS_LOGIN_PASSWORD_RESET_API_PATH,
+    handler=JsonLoginPasswordReset,
+    name='jsonLoginPasswordReset'
   )
 ])
 
+
+def bad_request_error_page(request, response, exception):
+  """ Used for HTTP/1.1 400 Bad request message output. """
+  logging.exception(exception)
+  response.write('Oops! The request could not be understood. [HTTP/1.1 400 Bad \
+Request]')
+  response.set_status(400)
 
 def not_found_error_page(request, response, exception):
   """ Used for HTTP/1.1 404 message output """
@@ -619,6 +893,7 @@ ternal Server Error]')
   response.set_status(500)
 
 
+app.error_handlers[400] = bad_request_error_page
 app.error_handlers[401] = users.error_handler_unauthorized
 app.error_handlers[404] = not_found_error_page
 app.error_handlers[500] = internal_server_error_page

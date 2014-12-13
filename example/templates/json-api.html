@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>ndb_users - a simply Python user log in system</title>
+
+		<!-- Bootstrap -->
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
+
+		<!-- Optional theme -->
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap-theme.min.css">
+
+		<!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+		<!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+		<!--[if lt IE 9]>
+		  <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+		  <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+		<![endif]-->
+		</head>
+	<body style="padding-top:50px; padding-bottom:20px;">
+		
+		<nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+			<div class="container">
+				<div class="navbar-header">
+					<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+						<span class="icon-bar"></span>
+						<span class="icon-bar"></span>
+						<span class="icon-bar"></span>
+					</button>
+					<a class="navbar-brand" href="/">ndb_users</a>
+				</div>
+				<div id="navbar" class="navbar-collapse collapse">
+					<ul class="nav navbar-nav">
+						<li><a href="/documentation">Documentation</a></li>
+						<li class="active"><a href="/json-api">JSON API</a></li>
+						<li><a href="/protected">Protected Page</a></li>
+					</ul>
+					{% if user %}
+					<a class="btn btn-danger navbar-btn navbar-right" href="{{ logout_url }}">Log out</a>
+					<p class="navbar-text navbar-right" style="margin-right:15px;">Welcome back, {{ user.email }}.</p>
+					{% else %}
+					<form class="navbar-form navbar-right" role="form" method="post" action="{{ login_url }}">
+						<div class="form-group">
+							<input type="text" name="email" placeholder="Email address..." class="form-control">
+						</div>
+						<div class="form-group">
+							<input type="password" name="password" placeholder="Password..." class="form-control">
+						</div>
+						<button type="submit" class="btn btn-success">Log in</button>
+					</form>
+					{% endif %}
+				</div>
+				</div>
+			</div>
+		</nav>
+
+		<div class="container">
+
+			<h1>JSON API</h1>
+
+			<hr>
+
+			<style type="text/css">
+
+			dt {
+				margin-top: 15px;
+			}
+
+			dd {
+				margin-bottom: 15px;
+			}
+
+			</style>
+
+			<dl>
+				
+				<dt><a href="/json-api/get/login"><code>GET _login.json</code></a></dt>
+				<dd>Determines if a user is logged in, fetches information about the logged in user, or logs out the current user.</dd>
+
+				<dt><a href="/json-api/post/login"><code>POST _login.json</code></a></dt>
+				<dd>Logs in a user.</dd>
+
+				<dt><a href="/json-api/post/login/create"><code>POST _login/create.json</code></a></dt>
+				<dd>Creates a new user.</dd>
+
+				<dt><a href="/json-api/get/login/activate"><code>GET _login/activate.json</code></a></dt>
+				<dd>Activates a user's account (verify email address).</dd>
+
+				<dt><a href="/json-api/post/login/password/change"><code>POST _login/password/change.json</code></a></dt>
+				<dd>Changes the logged in user's password.</dd>
+
+				<dt><a href="/json-api/post/login/password/forgot"><code>POST _login/password/forgot.json</code></a></dt>
+				<dd>Requests a password recovery token via email.</dd>
+
+				<dt><a href="/json-api/get/login/password/reset"><code>GET _login/password/reset.json</code></a></dt>
+				<dd>Verifies a password recovery token is usable.</dd>
+
+				<dt><a href="/json-api/post/login/password/reset"><code>POST _login/password/reset.json</code></a></dt>
+				<dd>Resets a user's password using a password recovery token.</dd>
+
+			</dl>
+
+
+			<hr>
+
+			<footer>
+				{% if user %}
+				<p><a href="{{ logout_url }}">Log out</a> or <a href="{{ password_change_url }}">change your password</a>.</p>
+				{% else %}
+				<p><a href="{{ login_url }}">Log in</a> to your account. <a href="{{ password_forgot_url }}">Forgot password?</a></p>
+				{% endif %}
+				<p>Copyright &copy; 2014 <a href="http://roberthodgen.com/">Robert Hodgen</a>. Available under the MIT license. <a href="https://github.com/roberthodgen/ndb_users">View on GitHub</a>.</p>
+			</footer>
+
+		</div>
+		
+		<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+		<!-- Include all compiled plugins (below), or include individual files as needed -->
+		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
+	</body>
+</html>
