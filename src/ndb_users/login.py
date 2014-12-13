@@ -534,7 +534,7 @@ class LoginActivate(webapp2.RequestHandler):
     ))
 
 
-class JsonLoginAcivate(webapp2.RequestHandler):
+class JsonLoginActivate(webapp2.RequestHandler):
   def get(self):
     """ Activate a user's account for a given `token`. """
     response_object = dict()
@@ -847,7 +847,7 @@ app = webapp2.WSGIApplication([
     strict_slash=True
   ), webapp2.Route(
     NDB_USERS_LOGIN_ACTIVATE_API_PATH,
-    handler=JsonLoginAcivate,
+    handler=JsonLoginActivate,
     name='jsonLoginActivate'
   ), RedirectRoute(
     NDB_USERS_LOGIN_PASSWORD_FORGOT_URI,
