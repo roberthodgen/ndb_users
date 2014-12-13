@@ -206,7 +206,10 @@ class LoginPage(webapp2.RequestHandler):
     # Error
     self.response.out.write(template.render(
       'ndb_users/templates/login-error.html',
-      users.template_values()
+      users.template_values({
+          'email': email,
+          'extended': extended
+        })
     ))
 
 
