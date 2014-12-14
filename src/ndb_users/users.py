@@ -224,6 +224,8 @@ class User(ndb.Model):
   verified = ndb.BooleanProperty(default=False)
   created = ndb.DateTimeProperty(auto_now_add=True)
   updated = ndb.DateTimeProperty(auto_now=True)
+  bounceCount = ndb.IntegerProperty(default=0)
+  lastBounce = ndb.DateTimeProperty()
 
   @classmethod
   @ndb.transactional

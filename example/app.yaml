@@ -13,7 +13,7 @@ handlers:
 - url: /_login(.*)
   script: ndb_users.login.app
   secure: always
-- url: /_ah/mail/.+
+- url: /_ah/bounce
   script: ndb_users.mail.app
   login: admin
 
@@ -29,4 +29,4 @@ libraries:
 
 
 inbound_services:
-- mail
+- mail_bounce

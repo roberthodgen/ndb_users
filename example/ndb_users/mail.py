@@ -27,13 +27,32 @@ import logging
 
 import webapp2
 
-from google.appengine.ext.webapp.mail_handlers import InboundMailHandler
+from google.appengine.ext.webapp.mail_handlers import BounceNotificationHandler
+
+from ndb_users import users
+
+from google.appengine.ext import ndb
+
+from datetime import datetime
 
 
-class LogSenderHandler(InboundMailHandler):
-  def receive(self, mail_message):
-    """ Log the inbound mail. """
-    logging.info('Received email from: ' + mail_message.sender)
+class BounceHandler(BounceNotificationHandler):
+  def receive(self, bounce_message):
+    logging.info('Received bounce notification: [%s]',
+      str(bounce_message.notification))
+    email = bounce_message.original.get('to')
+    if email:
+      logging.info('Original recipient: ' + email)
+      user = ndb.Key(users.User, users._user_id_for_email(email.lower())).get()
+      if user:
+        # Increment this user's `bounceCount` and update `lastBounce`
+        user.bounceCount += 1
+        user.lastBounce = datetime.now()
+        user.put()
+      else:
+        logging.info('User could not be found!')
+    else:
+      logging.info('Original recipient could not be determined!')
 
 
-app = webapp2.WSGIApplication([LogSenderHandler.mapping()], debug=True)
+app = webapp2.WSGIApplication([BounceHandler.mapping()], debug=True)
