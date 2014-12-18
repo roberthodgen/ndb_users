@@ -65,17 +65,17 @@ def create_logout_url(redirect_uri=None):
   request = webapp2.get_request()
   if redirect_uri:
     return ''.join([
-        request.host_url,
-        NDB_USERS_LOGIN_URI,
-        '?', urlencode({
-          'action': 'logout',
-          'continue': redirect_uri
-        })
-      ])
-  return ''.join([
       request.host_url,
-      NDB_USERS_LOGIN_URI, '?action=logout'
+      NDB_USERS_LOGIN_URI,
+      '?', urlencode({
+        'action': 'logout',
+        'continue': redirect_uri
+      })
     ])
+  return ''.join([
+    request.host_url,
+    NDB_USERS_LOGIN_URI, '?action=logout'
+  ])
 
 def create_login_url(redirect_uri=None):
   """ A login page, upon successful login will redirect to `redirect_uri`.
@@ -84,15 +84,15 @@ def create_login_url(redirect_uri=None):
   request = webapp2.get_request()
   if redirect_uri:
     return ''.join([
-        request.host_url,
-        NDB_USERS_LOGIN_URI, '?', urlencode({
-          'continue': redirect_uri
-        })
-      ])
-  return ''.join([
       request.host_url,
-      NDB_USERS_LOGIN_URI
+      NDB_USERS_LOGIN_URI, '?', urlencode({
+        'continue': redirect_uri
+      })
     ])
+  return ''.join([
+    request.host_url,
+    NDB_USERS_LOGIN_URI
+  ])
 
 def create_password_change_url(redirect_uri=None):
   """ Return a URL for changing the user's password. Redirect optional.
@@ -101,16 +101,16 @@ def create_password_change_url(redirect_uri=None):
   request = webapp2.get_request()
   if redirect_uri:
     return ''.join([
-        request.host_url,
-        NDB_USERS_LOGIN_PASSWORD_CHANGE_URI,
-        '?', urlencode({
-          'continue': redirect_uri
-        })
-      ])
-  return ''.join([
       request.host_url,
-      NDB_USERS_LOGIN_PASSWORD_CHANGE_URI
+      NDB_USERS_LOGIN_PASSWORD_CHANGE_URI,
+      '?', urlencode({
+        'continue': redirect_uri
+      })
     ])
+  return ''.join([
+    request.host_url,
+    NDB_USERS_LOGIN_PASSWORD_CHANGE_URI
+  ])
 
 def create_password_forgot_url(redirect_uri=None):
   """ Return a URL for resetting a user's password. Redirect optional.
@@ -119,16 +119,16 @@ def create_password_forgot_url(redirect_uri=None):
   request = webapp2.get_request()
   if redirect_uri:
     return ''.join([
-        request.host_url,
-        NDB_USERS_LOGIN_PASSWORD_FORGOT_URI,
-        '?', urlencode({
-            'continue': redirect_uri
-          })
-      ])
-  return ''.join([
       request.host_url,
-      NDB_USERS_LOGIN_PASSWORD_FORGOT_URI
+      NDB_USERS_LOGIN_PASSWORD_FORGOT_URI,
+      '?', urlencode({
+          'continue': redirect_uri
+        })
     ])
+  return ''.join([
+    request.host_url,
+    NDB_USERS_LOGIN_PASSWORD_FORGOT_URI
+  ])
 
 def _append_query(base, query):
   """ Append `query` to `base` if `query` has length. """
@@ -208,11 +208,11 @@ def error_handler_unauthorized(request, response, exception):
   login page with a message prompting the user to log in. """
   response.set_status(401)
   response.out.write(template.render(
-      'ndb_users/templates/401-unauthorized.html',
-      template_values(query_options={
-          'continue': request.path
-        })
-    ))
+    'ndb_users/templates/401-unauthorized.html',
+    template_values(query_options={
+        'continue': request.path
+      })
+  ))
 
 
 class User(ndb.Model):
@@ -356,10 +356,10 @@ class UserRecovery(ndb.Model):
   def create_user_recovery(cls, user_id):
     """ Create a new UserRecovery in the datastore for a given `user_id`. """
     new_user_recovery = UserRecovery(
-        key=ndb.Key(UserRecovery, _generate_token()),
-        userId=user_id,
-        expires = datetime.now() + timedelta(days=NDB_USERS_RECOVERY_DAYS)
-      )
+      key=ndb.Key(UserRecovery, _generate_token()),
+      userId=user_id,
+      expires = datetime.now() + timedelta(days=NDB_USERS_RECOVERY_DAYS)
+    )
     return new_user_recovery.put()
 
   @ndb.transactional(xg=True)
