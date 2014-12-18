@@ -26,7 +26,7 @@ Includes styled log in, log out, and more pages for your web apps.
 Easily add additional attributes to the built-in `User` class (sublcass of `ndb.Model`).
 
 ##### Verify email addresses
-Enforce email verification of new user accounts. Optional.
+Enforce email verification of new user accounts, track bounced messages. Optional.
 
 ##### Forget the headache
 Users can recover forgotten passwords via email links.
@@ -53,7 +53,7 @@ handlers:
 - url: /_login(.*)
   script: ndb_users.login.app
   secure: always
-- url: /_ah/mail/.+
+- url: /_ah/bounce
   script: ndb_users.mail.app
   login: admin
 ```
@@ -66,11 +66,11 @@ libraries:
   version: latest
 ```
 
-In your project's `app.yaml`, add `mail` under `inbound_services`:
+In your project's `app.yaml`, add `mail_bounce` under `inbound_services`:
 
 ```yaml
 inbound_services:
-- mail
+- mail_bounce
 ```
 
 ## Usage
@@ -102,7 +102,6 @@ More documentation available: https://ndb-users.appspot.com/documentation
 
 In no specific order. See issue tracker for more.
  - Integrate a default link "back" or "home"
- - Check for bounced/rejected emails
  - Create styled (HTML) emails.
  - NDB_USERS_SITE_NICKNAME
  - NDB_USERS_DEFAULT_CONTINUE_URI
