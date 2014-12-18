@@ -85,7 +85,7 @@
 - url: /_login(.*)
   script: ndb_users.login.app
   secure: always
-- url: /_ah/mail/.+
+- url: /_ah/bounce
   script: ndb_users.mail.app
   login: admin
 </code></pre></p>
@@ -97,13 +97,11 @@
   version: latest
 </code></pre></p>
 
-			<p>In your project's <code>app.yaml</code>, add <code>mail</code> under <code>inbound_services</code>:</p>
+			<p>In your project's <code>app.yaml</code>, add <code>mail_bounce</code> under <code>inbound_services</code>:</p>
 
 <p><pre><code>inbound_services:
-- mail
+- mail_bounce
 </code></pre></p>
-
-			<p>If you already use inbound mail, change the <code>/_mail/.+</code> URL handler to the email address you're expecting to use. This should also match <code>NDB_USERS_EMAIL_SENDER</code> in <code>config.py</code>.</p>
 
 			<p>For example of importing and usage see <code>main.py</code> in the included sample project.</p>
 
@@ -168,28 +166,43 @@
 					<p>It is recomended to never modify the <code>email</code> property! <code>User</code> entities with dupliate <code>email</code> properties in the datstore will cause unknown behavior. Additionally, the <code>key</code> property (see <code>ndb.Key</code> and <strong>Keys</strong> note below) is based off the hex sha256 hash of the user's lowercase email address.</p>
 					<p>Note: <code>email</code> is always stored, returned, and hashed in lowercase.</p>
 				</dd>
+				
 				<dt><h3><code>passwordHash</code></h3></dt>
 				<dd>
 					<p>The user's password hashed with <code>passwordSalt</code>.</p>
 				</dd>
+				
 				<dt><h3><code>passwordSalt</code></h3></dt>
 				<dd>
 					<p>The user's password salt.</p>
 					<p>The length may be changed in the global <code>NDB_USERS_SALT_LENGTH</code> in <code>config.py</code>.</p>
 					<p>The user's salt will be updated everytime the user's password is changed. See <code>Users.update_password()</code>.</p>
 				</dd>
+				
 				<dt><h3><code>verified</code></h3></dt>
 				<dd>
 					<p>Boolean indicating whether this user's email address has been verified.</p>
 				</dd>
+				
 				<dt><h3><code>created</code></h3></dt>
 				<dd>
 					<p>The <code>datetime</code> this user was created.</p>
 				</dd>
+				
 				<dt><h3><code>updated</code></h3></dt>
 				<dd>
 					<p>The <code>datetime</code> this user was last updated.</p>
 					<p>Does not take into account creation of account activation tokens or password recovery tokens.</p>
+				</dd>
+
+				<dt><h3><code>bounceCount</code></h3></dt>
+				<dd>
+					<p>The number of email bounce notification received for this user.</p>
+				</dd>
+
+				<dt><h3><code>lastBounce</code></h3></dt>
+				<dd>
+					<p>The <code>datetime</code> this user had a bounced email message. Will be <code>None</code> if no bounce has occurred.</p>
 				</dd>
 			</dl>
 
@@ -201,7 +214,7 @@
 
 			<p>The code to create a User's key is shown below where <code>user_id</code> is the hex sha256 hash of the user's lowercase email address.</p>
 
-			<p><pre><code>key = ndb.Key(ndb_users.users.User, user_id)</code></pre></p>
+			<p><pre><code>key = ndb.Key(users.User, user_id)</code></pre></p>
 			
 			<hr>
 

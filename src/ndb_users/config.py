@@ -70,6 +70,10 @@ before logging in again. This will not disrupt existing user sessions as
 UserSession. """
 NDB_USERS_ENFORCE_EMAIL_VERIFICATION = True
 
+""" The amount of time to wait between receiving a bounce email notification and
+sending the user another email. """
+NDB_USERS_EMAIL_BOUNCE_RETRY_HOURS = 12
+
 """ Change `NDB_USERS_SITE_NICKNAME` to the name of your site. This will be the
 visible text to the `NDB_USERS_DEFAULT_CONTINUE_URI` link. """
 NDB_USERS_SITE_NICKNAME = 'Home'

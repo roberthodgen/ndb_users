@@ -35,13 +35,9 @@ import json
 
 import logging
 
-import hashlib
-
 from google.appengine.ext.webapp import template
 
 from google.appengine.api import mail
-
-import re
 
 from ndb_users import users
 
@@ -125,10 +121,10 @@ def _create_recovery_email_for_user_id(user_id):
     if continue_uri:
       query_options['continue'] = continue_uri
     reset_url = ''.join([
-        request.host_url,
-        webapp2.uri_for('loginPasswordReset'),
-        '?', urlencode(query_options)
-      ])
+      request.host_url,
+      webapp2.uri_for('loginPasswordReset'),
+      '?', urlencode(query_options)
+    ])
     user = ndb.Key(users.User, user_id).get()
     sender_email_address = users._email_sender()
     subject = 'Password Reset'
@@ -183,8 +179,8 @@ class LoginPage(webapp2.RequestHandler):
       self.response.out.write(template.render(
         'ndb_users/templates/login-success.html',
         users.template_values(template_values={
-            'user': user
-          })
+          'user': user
+        })
       ))
       return None
     if email and password:
@@ -208,20 +204,24 @@ class LoginPage(webapp2.RequestHandler):
             ))
             return None
           else:
-            # User email not verified (send another email)
-            _create_activation_email_for_user_id(user.key.string_id())
+            # User email not verified (send another email, if allowed)
+            temp_values = dict()
+            if not user.email_bounce_limited():
+              _create_activation_email_for_user_id(user.key.string_id())
+            else:
+              temp_values['email_bounce_limit'] = True
             self.response.out.write(template.render(
               'ndb_users/templates/login-not-verified.html',
-              users.template_values()
+              users.template_values(template_values=temp_values)
             ))
             return None
     # Error
     self.response.out.write(template.render(
       'ndb_users/templates/login-error.html',
       users.template_values({
-          'email': email,
-          'extended': extended
-        })
+        'email': email,
+        'extended': extended
+      })
     ))
 
 
@@ -263,8 +263,11 @@ class JsonLogin(webapp2.RequestHandler):
             self.response.out.write(json.dumps(response_object))
             return None
           else:
-            # User email not verified (send another email)
-            _create_activation_email_for_user_id(user.key.string_id())
+            # User email not verified (send another email, if allowed)
+            if not user.email_bounce_limited():
+              _create_activation_email_for_user_id(user.key.string_id())
+            else:
+              response_object['email_bounce_limit'] = True
             response_object['user_not_verified'] = True
             self.response.content_type = 'application/json'
             self.response.out.write(json.dumps(response_object))
@@ -610,36 +613,45 @@ class LoginPasswordForgot(webapp2.RequestHandler):
       user = users.User.user_for_email(email)
       if user:
         if users.user_verified(user):
-          _create_recovery_email_for_user_id(user.key.string_id())
-          self.response.out.write(template.render(
-            'ndb_users/templates/password-forgot-success.html',
-            users.template_values()
-          ))
+          if not user.email_bounce_limited():
+            _create_recovery_email_for_user_id(user.key.string_id())
+            self.response.out.write(template.render(
+              'ndb_users/templates/password-forgot-success.html',
+              users.template_values()
+            ))
+          else:
+            # Bounce timeout
+            self.response.out.write(template.render(
+              'ndb_users/templates/password-forgot-error.html',
+              users.template_values(template_values={
+                'email_bounce_limit': True
+              })
+            ))
         else:
           # User not verified
           self.response.out.write(template.render(
             'ndb_users/templates/password-forgot-error.html',
             users.template_values(template_values={
-                'user_not_verified': True
-              })
+              'user_not_verified': True
+            })
           ))
       else:
         # User not found
         self.response.out.write(template.render(
           'ndb_users/templates/password-forgot-error.html',
           users.template_values(template_values={
-              'error_email_not_found': True,
-              'email': email
-            })
+            'error_email_not_found': True,
+            'email': email
+          })
         ))
     else:
       # No `email` supplied in POST
       self.response.out.write(template.render(
         'ndb_users/templates/password-forgot-error.html',
         users.template_values(template_values={
-            'error_invalid_email': True,
-            'email': email
-          })
+          'error_invalid_email': True,
+          'email': email
+        })
       ))
 
 
@@ -654,8 +666,11 @@ class JsonLoginPasswordForgot(webapp2.RequestHandler):
       user = users.User.user_for_email(email)
       if user:
         if users.user_verified(user):
-          _create_recovery_email_for_user_id(user.key.string_id())
-          response_object['user'] = dict()
+          if not user.email_bounce_limited():
+            _create_recovery_email_for_user_id(user.key.string_id())
+            response_object['user'] = dict()
+          else:
+            response_object['email_bounce_limit'] = True
           self.response.content_type = 'application/json'
           self.response.out.write(json.dumps(response_object))
           return None
@@ -686,8 +701,8 @@ class LoginPasswordReset(webapp2.RequestHandler):
           self.response.out.write(template.render(
             'ndb_users/templates/password-reset.html',
             users.template_values(query_options={
-                'token': token
-              })
+              'token': token
+            })
           ))
           return None
     continue_uri = self.request.GET.get('continue')
@@ -696,10 +711,10 @@ class LoginPasswordReset(webapp2.RequestHandler):
     self.response.out.write(template.render(
       'ndb_users/templates/password-reset-error.html',
       users.template_values(template_values={
-          'token_invalid': True
-        }, query_options={
-          'token': token
-        })
+        'token_invalid': True
+      }, query_options={
+        'token': token
+      })
     ))
 
   def post(self):
@@ -714,10 +729,10 @@ class LoginPasswordReset(webapp2.RequestHandler):
         self.response.out.write(template.render(
           'ndb_users/templates/password-reset-error.html',
           users.template_values(template_values={
-              'password_mismatch': True
-            }, query_options={
-              'token': token
-            })
+            'password_mismatch': True
+          }, query_options={
+            'token': token
+          })
         ))
         return None
       # Check password length
@@ -725,10 +740,10 @@ class LoginPasswordReset(webapp2.RequestHandler):
         self.response.out.write(template.render(
           'ndb_users/templates/password-reset-error.html',
           users.template_values(template_values={
-              'password_too_short': True
-            }, query_options={
-              'token': token
-            })
+            'password_too_short': True
+          }, query_options={
+            'token': token
+          })
         ))
         return None
       # Recover the User
@@ -741,8 +756,8 @@ class LoginPasswordReset(webapp2.RequestHandler):
             self.response.out.write(template.render(
               'ndb_users/templates/password-change-success.html',
               users.template_values(query_options={
-                  'token': token
-                })
+                'token': token
+              })
             ))
           return None
     continue_uri = self.request.GET.get('continue')
@@ -752,9 +767,9 @@ class LoginPasswordReset(webapp2.RequestHandler):
       'ndb_users/templates/password-reset-error.html',
       users.template_values(template_values={
         'token_invalid': True
-        }, query_options={
-          'token': token
-        })
+      }, query_options={
+        'token': token
+      })
     ))
 
 

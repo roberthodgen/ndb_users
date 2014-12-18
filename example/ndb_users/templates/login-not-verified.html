@@ -37,9 +37,17 @@
 
 				<div class="form-login-item form-body">
 					
+					{% if not email_bounce_limit %}
 					<p class="text-center text-muted"><em>We've just sent you another activation email!</em></p>
+					{% else %}
+					<p class="text-center">An activation email could not be sent due to a previously bounced message.</p>
+					{% endif %}
 
 					<p class="text-center">Your account will remain inactive until your email has been verified.</p>
+
+					{% if email_bounce_limit %}
+					<p class="text-center">Please try logging in again later.</p>
+					{% endif %}
 					
 				</div>
 				
