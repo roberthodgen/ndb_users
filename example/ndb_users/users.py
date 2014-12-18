@@ -252,6 +252,14 @@ class User(ndb.Model):
     self.passwordHash = _password_hash(new_password, password_salt)
     return self.put()
 
+  def email_bounce_limited(self):
+    """ Return True if this user cannot be sent additional emails. """
+    if self.lastBounce:
+      if self.lastBounce > datetime.now() - timedelta(
+        hours=NDB_USERS_EMAIL_BOUNCE_RETRY_HOURS):
+        return True
+    return False
+
   @classmethod
   def _generate_password_salt(cls):
     return ''.join(random.SystemRandom().sample(''.join([string.digits,

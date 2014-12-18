@@ -104,6 +104,7 @@
 				<dd>
 					<p>Will always equal <code>True</code>.</p>
 					<p>Indicates a user cannot be logged in because their email address has not been verified.</p>
+					<p>When <code>email_bounce_limit</code> is not present; another account activation email has been sent.</p>
 					<p>Note: this will only be returned when the user's correct email and password have been supplied.</p>
 				</dd>
 
@@ -111,6 +112,12 @@
 				<dd>
 					<p>Will always equal <code>True</code>.</p>
 					<p>Indicates the user's email address and/or password is invalid.</p>
+				</dd>
+
+				<dt><h4><code>email_bounce_limit</code></h4></dt>
+				<dd>
+					<p>Will always equal <code>True</code>.</p>
+					<p>Indicates the user could not be send another email due to a previous bounce message. The user should be prompted to try again later.</p>
 				</dd>
 			</dl>
 

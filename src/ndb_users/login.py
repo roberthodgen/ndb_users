@@ -112,6 +112,7 @@ by clicking the link below:
 """.format(activation_link=activation_url)
     mail.send_mail(sender_email_address, user.email, subject, body)
 
+
 def _create_recovery_email_for_user_id(user_id):
   """ Create a password recovery token for `user` and send an email to the
   User's email address including a link to reset their password. """
@@ -208,12 +209,16 @@ class LoginPage(webapp2.RequestHandler):
             ))
             return None
           else:
-            # User email not verified (send another email)
-            _create_activation_email_for_user_id(user.key.string_id())
+            # User email not verified (send another email, if allowed)
+            temp_values = dict()
+            if not user.email_bounce_limited():
+              _create_activation_email_for_user_id(user.key.string_id())
+            else:
+              temp_values['email_bounce_limit'] = True
             self.response.out.write(template.render(
-              'ndb_users/templates/login-not-verified.html',
-              users.template_values()
-            ))
+                'ndb_users/templates/login-not-verified.html',
+                users.template_values(template_values=temp_values)
+              ))
             return None
     # Error
     self.response.out.write(template.render(
@@ -263,8 +268,11 @@ class JsonLogin(webapp2.RequestHandler):
             self.response.out.write(json.dumps(response_object))
             return None
           else:
-            # User email not verified (send another email)
-            _create_activation_email_for_user_id(user.key.string_id())
+            # User email not verified (send another email, if allowed)
+            if not user.email_bounce_limited():
+              _create_activation_email_for_user_id(user.key.string_id())
+            else:
+              response_object['email_bounce_limit'] = True
             response_object['user_not_verified'] = True
             self.response.content_type = 'application/json'
             self.response.out.write(json.dumps(response_object))
@@ -610,11 +618,20 @@ class LoginPasswordForgot(webapp2.RequestHandler):
       user = users.User.user_for_email(email)
       if user:
         if users.user_verified(user):
-          _create_recovery_email_for_user_id(user.key.string_id())
-          self.response.out.write(template.render(
-            'ndb_users/templates/password-forgot-success.html',
-            users.template_values()
-          ))
+          if not user.email_bounce_limited():
+            _create_recovery_email_for_user_id(user.key.string_id())
+            self.response.out.write(template.render(
+              'ndb_users/templates/password-forgot-success.html',
+              users.template_values()
+            ))
+          else:
+            # Bounce timeout
+            self.response.out.write(template.render(
+              'ndb_users/templates/password-forgot-error.html',
+              users.template_values(template_values={
+                'email_bounce_limit': True
+              })
+            ))
         else:
           # User not verified
           self.response.out.write(template.render(
@@ -628,18 +645,18 @@ class LoginPasswordForgot(webapp2.RequestHandler):
         self.response.out.write(template.render(
           'ndb_users/templates/password-forgot-error.html',
           users.template_values(template_values={
-              'error_email_not_found': True,
-              'email': email
-            })
+            'error_email_not_found': True,
+            'email': email
+          })
         ))
     else:
       # No `email` supplied in POST
       self.response.out.write(template.render(
         'ndb_users/templates/password-forgot-error.html',
         users.template_values(template_values={
-            'error_invalid_email': True,
-            'email': email
-          })
+          'error_invalid_email': True,
+          'email': email
+        })
       ))
 
 
@@ -654,8 +671,11 @@ class JsonLoginPasswordForgot(webapp2.RequestHandler):
       user = users.User.user_for_email(email)
       if user:
         if users.user_verified(user):
-          _create_recovery_email_for_user_id(user.key.string_id())
-          response_object['user'] = dict()
+          if not user.email_bounce_limited():
+            _create_recovery_email_for_user_id(user.key.string_id())
+            response_object['user'] = dict()
+          else:
+            response_object['email_bounce_limit'] = True
           self.response.content_type = 'application/json'
           self.response.out.write(json.dumps(response_object))
           return None
