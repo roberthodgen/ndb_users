@@ -443,30 +443,34 @@ class LoginPasswordChange(webapp2.RequestHandler):
     """ Change the logged in user's password. """
     user = users.get_current_user()
     if user:
-      current_password = self.request.POST.get('password')
-      new_password = self.request.POST.get('newPassword')
-      new_password2 = self.request.POST.get('newPassword2')
+      current_password = self.request.POST.get('current_password')
+      new_password = self.request.POST.get('new_password')
+      new_password2 = self.request.POST.get('new_password2')
       # Make sure required POST parameters are present
       if not current_password or not new_password or not new_password2:
         self.response.out.write(template.render(
           'ndb_users/templates/password-change-error.html',
-          users.template_values()
+          users.template_values(template_values={
+            'missing_fields': True
+          })
         ))
         return None
       # Check password equality
       if new_password != new_password2:
         self.response.out.write(template.render(
-          'ndb_users/templates/password-change-error.html', {
-            'passwordMismatch': True
-          }
+          'ndb_users/templates/password-change-error.html',
+          users.template_values(template_values={
+            'password_mismatch': True
+          })
         ))
         return None
       # Check password length
       if len(new_password) < 4:
         self.response.out.write(template.render(
-          'ndb_users/templates/password-change-error.html', {
-            'passwordTooShort': True
-          }
+          'ndb_users/templates/password-change-error.html',
+          users.template_values(template_values={
+            'password_too_short': True
+          })
         ))
         return None
       # Check `current_password` is indeed this user's password
@@ -483,7 +487,9 @@ class LoginPasswordChange(webapp2.RequestHandler):
         # Wrong `current_password`
         self.response.out.write(template.render(
           'ndb_users/templates/password-change-error.html',
-          users.template_values()
+          users.template_values(template_values={
+            'password_incorrect': True
+          })
         ))
         return None
     # Not logged in
