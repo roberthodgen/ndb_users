@@ -1,8 +1,6 @@
 ndb_users
 =========
 
-__Pre-release/in development!__
-
 > Simple user accounts for Google App Engine projects.
 
 `ndb_users` is a Python module for adding user accounts to your Google App Engine project. It feels familiar because the `ndb_users` API is similar to that of Google’s Users’ API--with one exception: user accounts reside in your project and don’t rely upon OpenID or a Google Account.
