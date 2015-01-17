@@ -275,6 +275,7 @@ class JsonLogin(webapp2.RequestHandler):
       response_object['login_fail'] = True
       self.response.content_type = 'application/json'
       self.response.out.write(json.dumps(response_object))
+      return None
     self.abort(400) # Logged in user, no `email`, or no `password`
 
 
